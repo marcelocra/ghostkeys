@@ -4,6 +4,8 @@
 
 GhostKeys is a Windows System Tray application that intercepts keyboard input at the system level to provide ABNT2 (Brazilian) keyboard layout emulation on US-International keyboards. The application uses a state machine to handle dead key sequences and provides context-aware remapping based on the active window.
 
+**Prerequisite:** The system must have Windows configured with the **English (US-International)** keyboard layout. GhostKeys intercepts US-International dead key sequences and converts them to ABNT2 characters, enabling Brazilian Portuguese typing without changing the system layout.
+
 The design prioritizes:
 - Low latency (<10ms) keystroke processing
 - Panic safety with guaranteed hook release

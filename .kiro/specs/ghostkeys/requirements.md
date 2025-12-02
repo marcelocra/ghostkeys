@@ -4,6 +4,8 @@
 
 GhostKeys is a Windows-only System Tray application written in Rust that intercepts keyboard input to simulate ABNT2 (Brazilian) layout behavior on a US-International keyboard. The application uses a state machine to handle dead keys (accents) and provides context-aware remapping based on the active window. The goal is to provide seamless Brazilian Portuguese typing on US keyboards while maintaining low latency and system stability.
 
+**Prerequisite:** GhostKeys requires Windows to be configured with the **English (US-International)** keyboard layout. The application intercepts US-International dead key sequences (e.g., `'` + `c`) and converts them to ABNT2 characters (e.g., `ç`). Users must have a US-International physical keyboard and the corresponding Windows layout selected for GhostKeys to function correctly.
+
 ## Glossary
 
 - **GhostKeys**: The Windows System Tray application that intercepts and remaps keyboard input

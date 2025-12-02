@@ -4,7 +4,9 @@ A Windows System Tray application that enables Brazilian Portuguese (ABNT2) typi
 
 ## Overview
 
-GhostKeys intercepts keyboard input to simulate ABNT2 layout behavior, allowing seamless typing of Portuguese characters like `ç`, `ã`, `õ` using dead key sequences on a US-International keyboard.
+GhostKeys intercepts keyboard input to simulate ABNT2 layout behavior, allowing seamless typing of Portuguese characters like `ç`, `ã`, `õ` using dead key sequences.
+
+**Important:** GhostKeys is designed for users with a US-International physical keyboard who have Windows configured with the **English (US-International)** keyboard layout. It intercepts the US-International dead key sequences and converts them to ABNT2 characters, giving you Brazilian Portuguese output without switching your system layout.
 
 ## Features
 
@@ -24,6 +26,8 @@ GhostKeys intercepts keyboard input to simulate ABNT2 layout behavior, allowing 
 ## Requirements
 
 - Windows 10/11
+- **Windows keyboard layout set to English (US-International)**
+- US-International physical keyboard
 - Rust toolchain (for building from source)
 
 ## Installation
