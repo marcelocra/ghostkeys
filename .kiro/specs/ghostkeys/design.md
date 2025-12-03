@@ -145,14 +145,16 @@ pub fn create_interceptor() -> Box<dyn KeyboardInterceptor>;
 **Platform Implementations:**
 
 `platform/windows.rs` - Primary target (Windows 11):
-- Uses `rdev` with Windows low-level keyboard hooks
-- Implements `SetWindowsHookEx` for key interception
+- Uses `windows-rs` (Microsoft official bindings) for keyboard hooks
+- Implements `SetWindowsHookEx` (WH_KEYBOARD_LL) for key interception
 - Uses `SendInput` for key injection
+- Production-ready, security-auditable
 
 `platform/linux.rs` - Development/testing:
 - Uses `rdev` with X11/Wayland support
-- Allows running and testing on Linux
+- Allows running and testing on Linux during development
 - Same interface, different backend
+- NOT for production use
 
 Responsibilities:
 - Install and manage the low-level keyboard hook

@@ -48,6 +48,19 @@ Chat conversations or AI interactions MAY be conducted in other languages, but a
 -   **Minimal access:** Request only the minimum permissions needed
 -   **Audit-friendly:** Code should be easy to audit for security
 
+## Approved Libraries
+
+Based on security research (see `docs/library-research.md`):
+
+| Library | Purpose |
+|---------|---------|
+| windows-rs | Keyboard hooks, key injection (Microsoft official) |
+| tao | Event loop (Tauri ecosystem) |
+| tray-icon | System tray (Tauri ecosystem) |
+| proptest | Property-based testing |
+| thiserror | Error handling |
+| rdev | Linux development only (not for Windows production) |
+
 ## Commit Messages
 
 -   Commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification.
