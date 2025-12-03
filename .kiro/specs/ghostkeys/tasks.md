@@ -7,11 +7,14 @@
     - Configure Windows-specific settings in `Cargo.toml`
     - _Requirements: 7.1_
 
-  - [ ] 1.2 Create module structure
-    - Create `src/interceptor.rs` with module declaration
+  - [ ] 1.2 Create module structure with platform abstraction
     - Create `src/mapper.rs` with module declaration
     - Create `src/error.rs` for error types
     - Create `src/state.rs` for shared state types
+    - Create `src/interceptor.rs` with trait definition
+    - Create `src/platform/mod.rs` with platform detection
+    - Create `src/platform/windows.rs` (stub)
+    - Create `src/platform/linux.rs` (stub)
     - Update `src/main.rs` with module imports
     - _Requirements: 7.1_
 
@@ -102,38 +105,50 @@
 - [ ] 5. Checkpoint - Verify state machine
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Keyboard Interceptor
-  - [ ] 6.1 Implement keyboard hook installation
-    - Create `KeyboardInterceptor` struct in `interceptor.rs`
-    - Implement hook installation using `rdev::listen`
-    - Set up callback to receive key events
+- [ ] 6. Keyboard Interceptor (Platform Abstraction)
+  - [ ] 6.1 Define KeyboardInterceptor trait
+    - Create trait in `interceptor.rs` with `start()`, `stop()`, `is_running()`
+    - Define `create_interceptor()` factory function
+    - Keep trait platform-agnostic
     - _Requirements: 7.1_
 
-  - [ ] 6.2 Implement hook release and panic safety
+  - [ ] 6.2 Implement Linux interceptor (development platform)
+    - Create `LinuxInterceptor` struct in `platform/linux.rs`
+    - Implement hook using `rdev::listen` with X11/Wayland
+    - Implement key injection using `rdev::simulate`
+    - This allows testing on Linux during development
+    - _Requirements: 7.1, 7.2_
+
+  - [ ] 6.3 Implement Windows interceptor (primary target)
+    - Create `WindowsInterceptor` struct in `platform/windows.rs`
+    - Implement hook using `rdev::listen` with Windows hooks
+    - Implement key injection using `rdev::simulate`
+    - _Requirements: 7.1, 7.2_
+
+  - [ ] 6.4 Implement hook release and panic safety
     - Implement `stop()` method to release the hook
     - Set up global panic handler that releases hook
     - Implement `Drop` trait for automatic cleanup
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-  - [ ] 6.3 Implement thread spawning for hook
+  - [ ] 6.5 Implement thread spawning for hook
     - Spawn hook in separate thread
     - Pass `Arc<Mutex<AppState>>` to hook thread
     - Implement graceful shutdown via exit flag
     - _Requirements: 7.1, 7.4_
 
-  - [ ] 6.4 Integrate Mapper with Interceptor
+  - [ ] 6.6 Integrate Mapper with Interceptor
     - Create Mapper instance in hook thread
     - Call `process_key()` for each keystroke
     - Execute returned `KeyAction` (Pass, Suppress, Replace)
-    - Implement key injection using `rdev::simulate`
     - _Requirements: 7.2_
 
-  - [ ]* 6.5 Write property test for passthrough mode
+  - [ ]* 6.7 Write property test for passthrough mode
     - **Property 7: Passthrough Mode Transparency**
     - **Validates: Requirements 7.3**
     - Test that all keystrokes pass through unmodified in Passthrough mode
 
-  - [ ]* 6.6 Write property test for processing latency
+  - [ ]* 6.8 Write property test for processing latency
     - **Property 8: Keystroke Processing Latency**
     - **Validates: Requirements 5.1**
     - Measure processing time for random keystrokes
@@ -146,7 +161,7 @@
   - [ ] 8.1 Create System Tray icon
     - Initialize `tray-icon` with application icon
     - Set up `tao` event loop in main thread
-    - Display icon in Windows System Tray on startup
+    - Display icon in System Tray on startup (works on both Linux and Windows)
     - _Requirements: 4.1_
 
   - [ ] 8.2 Implement context menu

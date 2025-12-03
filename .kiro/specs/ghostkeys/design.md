@@ -16,7 +16,7 @@ The design prioritizes:
 
 ## Architecture
 
-GhostKeys follows a multi-threaded architecture with clear separation of concerns:
+GhostKeys follows a multi-threaded architecture with clear separation of concerns and platform abstraction:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -39,14 +39,35 @@ GhostKeys follows a multi-threaded architecture with clear separation of concern
               ▼              ▼              ▼
 ┌─────────────────┐  ┌─────────────┐  ┌─────────────────┐
 │  Hook Thread    │  │   Mapper    │  │  Panic Handler  │
-│  (interceptor)  │  │   (pure)    │  │   (global)      │
+│  (platform/)    │  │   (pure)    │  │   (global)      │
 │                 │  │             │  │                 │
-│  - rdev hook    │  │ - Position  │  │ - Hook release  │
+│  - Trait impl   │  │ - Position  │  │ - Hook release  │
 │  - Key events   │  │   Map       │  │ - Cleanup       │
 │  - Inject keys  │  │ - State     │  │                 │
 │                 │  │   Machine   │  │                 │
 └─────────────────┘  └─────────────┘  └─────────────────┘
 ```
+
+### Project Structure
+
+```
+src/
+├── main.rs              # Entry point, platform detection
+├── mapper.rs            # Pure logic - testable on any OS
+├── state.rs             # Shared state types - pure Rust
+├── error.rs             # Error types - pure Rust
+├── interceptor.rs       # Trait definition for keyboard hook
+└── platform/
+    ├── mod.rs           # Platform detection and factory
+    ├── windows.rs       # Windows implementation (primary)
+    └── linux.rs         # Linux implementation (dev/testing)
+```
+
+**Platform Abstraction Benefits:**
+- Core mapper logic is pure Rust, testable on any OS
+- Property-based tests run on Linux during development
+- Only `platform/` code requires target OS for integration testing
+- Easy to add macOS support later
 
 ### Threading Model
 
@@ -97,19 +118,17 @@ pub enum OperationMode {
 }
 ```
 
-### 2. Keyboard Interceptor (`interceptor.rs`)
+### 2. Keyboard Interceptor (`interceptor.rs` + `platform/`)
 
-Responsibilities:
-- Install and manage the low-level keyboard hook via `rdev`
-- Read shared state to determine current mode
-- Delegate keystroke processing to the Mapper
-- Inject replacement characters when needed
-- Guarantee hook release on panic or shutdown
+The interceptor is split into a trait definition and platform-specific implementations.
+
+**Trait Definition (`interceptor.rs`):**
 
 ```rust
-pub trait KeyboardInterceptor {
+pub trait KeyboardInterceptor: Send {
     fn start(&mut self, state: Arc<Mutex<AppState>>) -> Result<(), InterceptorError>;
     fn stop(&mut self) -> Result<(), InterceptorError>;
+    fn is_running(&self) -> bool;
 }
 
 pub enum KeyAction {
@@ -118,7 +137,29 @@ pub enum KeyAction {
     Replace(char),              // Suppress and inject replacement
     ReplaceMultiple(Vec<char>), // Suppress and inject multiple chars
 }
+
+/// Factory function to create platform-specific interceptor
+pub fn create_interceptor() -> Box<dyn KeyboardInterceptor>;
 ```
+
+**Platform Implementations:**
+
+`platform/windows.rs` - Primary target (Windows 11):
+- Uses `rdev` with Windows low-level keyboard hooks
+- Implements `SetWindowsHookEx` for key interception
+- Uses `SendInput` for key injection
+
+`platform/linux.rs` - Development/testing:
+- Uses `rdev` with X11/Wayland support
+- Allows running and testing on Linux
+- Same interface, different backend
+
+Responsibilities:
+- Install and manage the low-level keyboard hook
+- Read shared state to determine current mode
+- Delegate keystroke processing to the Mapper
+- Inject replacement characters when needed
+- Guarantee hook release on panic or shutdown
 
 ### 3. Mapper (`mapper.rs`)
 
@@ -364,11 +405,21 @@ Integration tests will verify:
 ### Test File Structure
 
 ```
+src/
+├── mapper.rs                 # Contains unit tests (#[cfg(test)])
+├── state.rs                  # Contains unit tests (#[cfg(test)])
 tests/
-├── mapper_properties.rs      # Property tests for Mapper
-├── state_machine_tests.rs    # Unit tests for state transitions
-├── integration_tests.rs      # Integration tests (Windows-only)
+├── mapper_properties.rs      # Property tests for Mapper (runs on any OS)
+├── state_machine_tests.rs    # Unit tests for state transitions (runs on any OS)
+├── integration_tests.rs      # Integration tests (platform-specific)
 ```
+
+**Cross-Platform Testing Strategy:**
+- Property tests (Properties 1-5, 8) run on any OS - they test pure mapper logic
+- State tests (Property 6) run on any OS - they test pure state logic
+- Integration tests (Property 7) are platform-specific - they test actual hook behavior
+- Development on Linux: run `cargo test` for all pure logic tests
+- Final validation on Windows: run full integration tests
 
 ### Test Annotations
 
