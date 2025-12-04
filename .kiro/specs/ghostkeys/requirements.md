@@ -27,16 +27,31 @@ GhostKeys is a Windows System Tray application written in Rust that enables flue
 
 **User Story:** As a Brazilian Portuguese user with ABNT2 muscle memory, I want to type on a US keyboard with US layout and have GhostKeys output the characters I expect from ABNT2 positions, so that I can type Portuguese naturally without switching layouts.
 
+#### ABNT2 Positional Mapping Reference Table
+
+| US Key (Physical) | Output (No Shift) | Output (Shift) | Logic |
+| :--- | :--- | :--- | :--- |
+| `[` (next to P) | Dead Key Acute (´) | Dead Key Backtick (`) | ABNT2 Accent Key Position |
+| `]` (next to `[`) | `[` | `{` | ABNT2 Bracket Key Position |
+| `\` (above Enter) | `]` | `}` | ABNT2 Close Bracket Position |
+| `'` (next to ;) | Dead Key Tilde (~) | Dead Key Circumflex (^) | ABNT2 Tilde Key Position |
+| `;` (next to L) | `ç` | `Ç` | ABNT2 Cedilla Position |
+| `/` (next to .) | `;` | `:` | ABNT2 Semicolon Position |
+
 #### Acceptance Criteria
 
-1. WHEN the user presses the `;` key (US semicolon position), THEN GhostKeys SHALL output the character `ç`
+1. WHEN the user presses the `;` key (US semicolon position), THEN GhostKeys SHALL output the character `ç` (ABNT2 Cedilla Position)
 2. WHEN the user presses `Shift` + `;` key, THEN GhostKeys SHALL output the character `Ç`
-3. WHEN the user presses the `~` key (US tilde/backtick position), THEN GhostKeys SHALL output the character `"`  (double quote)
-4. WHEN the user presses `Shift` + `~` key, THEN GhostKeys SHALL output the character `"` (double quote, same as unshifted on ABNT2)
-5. WHEN the user presses the `'` key (US apostrophe position), THEN GhostKeys SHALL enter the tilde dead key state (ABNT2 tilde position)
-6. WHEN the user presses the `[` key (US left bracket position), THEN GhostKeys SHALL enter the acute accent dead key state (ABNT2 acute position)
-7. WHEN the user presses the `]` key (US right bracket position), THEN GhostKeys SHALL enter the grave accent dead key state (ABNT2 grave position)
-8. WHEN the user presses the `\` key (US backslash position), THEN GhostKeys SHALL output the character `]` (ABNT2 right bracket position)
+3. WHEN the user presses the `'` key (US apostrophe position), THEN GhostKeys SHALL enter the tilde dead key state (ABNT2 Tilde Key Position)
+4. WHEN the user presses `Shift` + `'` key, THEN GhostKeys SHALL enter the circumflex dead key state (ABNT2 Circumflex Position)
+5. WHEN the user presses the `[` key (US left bracket position), THEN GhostKeys SHALL enter the acute accent dead key state (ABNT2 Accent Key Position)
+6. WHEN the user presses `Shift` + `[` key, THEN GhostKeys SHALL enter the grave accent dead key state (ABNT2 Backtick Position)
+7. WHEN the user presses the `]` key (US right bracket position), THEN GhostKeys SHALL output the character `[` (ABNT2 Bracket Key Position)
+8. WHEN the user presses `Shift` + `]` key, THEN GhostKeys SHALL output the character `{`
+9. WHEN the user presses the `\` key (US backslash position), THEN GhostKeys SHALL output the character `]` (ABNT2 Close Bracket Position)
+10. WHEN the user presses `Shift` + `\` key, THEN GhostKeys SHALL output the character `}`
+11. WHEN the user presses the `/` key (US slash position), THEN GhostKeys SHALL output the character `;` (ABNT2 Semicolon Position)
+12. WHEN the user presses `Shift` + `/` key, THEN GhostKeys SHALL output the character `:`
 
 ### Requirement 2: ABNT2 Dead Key Sequences
 
@@ -44,19 +59,22 @@ GhostKeys is a Windows System Tray application written in Rust that enables flue
 
 #### Acceptance Criteria
 
-1. WHEN the user types `'` followed by `a`, THEN GhostKeys SHALL output the character `ã`
-2. WHEN the user types `'` followed by `A`, THEN GhostKeys SHALL output the character `Ã`
-3. WHEN the user types `'` followed by `o`, THEN GhostKeys SHALL output the character `õ`
-4. WHEN the user types `'` followed by `O`, THEN GhostKeys SHALL output the character `Õ`
-5. WHEN the user types `'` followed by `n`, THEN GhostKeys SHALL output the character `ñ`
-6. WHEN the user types `[` followed by `a`, THEN GhostKeys SHALL output the character `á`
-7. WHEN the user types `[` followed by `e`, THEN GhostKeys SHALL output the character `é`
-8. WHEN the user types `[` followed by `i`, THEN GhostKeys SHALL output the character `í`
-9. WHEN the user types `[` followed by `o`, THEN GhostKeys SHALL output the character `ó`
-10. WHEN the user types `[` followed by `u`, THEN GhostKeys SHALL output the character `ú`
-11. WHEN the user types `]` followed by `a`, THEN GhostKeys SHALL output the character `à`
-12. WHEN the user types a dead key followed by a non-combinable character, THEN GhostKeys SHALL output the dead key character followed by the typed character
-13. WHEN the user types a dead key followed by a space, THEN GhostKeys SHALL output only the dead key character
+1. WHEN the user types `'` (tilde dead key) followed by `a`, THEN GhostKeys SHALL output the character `ã`
+2. WHEN the user types `'` (tilde dead key) followed by `A`, THEN GhostKeys SHALL output the character `Ã`
+3. WHEN the user types `'` (tilde dead key) followed by `o`, THEN GhostKeys SHALL output the character `õ`
+4. WHEN the user types `'` (tilde dead key) followed by `O`, THEN GhostKeys SHALL output the character `Õ`
+5. WHEN the user types `'` (tilde dead key) followed by `n`, THEN GhostKeys SHALL output the character `ñ`
+6. WHEN the user types `[` (acute dead key) followed by `a`, THEN GhostKeys SHALL output the character `á`
+7. WHEN the user types `[` (acute dead key) followed by `e`, THEN GhostKeys SHALL output the character `é`
+8. WHEN the user types `[` (acute dead key) followed by `i`, THEN GhostKeys SHALL output the character `í`
+9. WHEN the user types `[` (acute dead key) followed by `o`, THEN GhostKeys SHALL output the character `ó`
+10. WHEN the user types `[` (acute dead key) followed by `u`, THEN GhostKeys SHALL output the character `ú`
+11. WHEN the user types `Shift+[` (grave dead key) followed by `a`, THEN GhostKeys SHALL output the character `à`
+12. WHEN the user types `Shift+'` (circumflex dead key) followed by `a`, THEN GhostKeys SHALL output the character `â`
+13. WHEN the user types `Shift+'` (circumflex dead key) followed by `e`, THEN GhostKeys SHALL output the character `ê`
+14. WHEN the user types `Shift+'` (circumflex dead key) followed by `o`, THEN GhostKeys SHALL output the character `ô`
+15. WHEN the user types a dead key followed by a non-combinable character, THEN GhostKeys SHALL output the dead key character followed by the typed character
+16. WHEN the user types a dead key followed by a space, THEN GhostKeys SHALL output only the dead key character
 
 ### Requirement 3: State Machine for Dead Key Handling
 

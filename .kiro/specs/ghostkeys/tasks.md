@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. Project Scaffold & Dependencies
+- [x] 1. Project Scaffold & Dependencies
   - [x] 1.1 Initialize Rust project with Cargo
 
 
@@ -41,10 +41,11 @@
   - [x] 2.1 Implement position mapping table
 
     - Create `HashMap<VirtualKey, (char, char)>` for direct mappings (unshifted, shifted)
-    - Map `;` → (`ç`, `Ç`)
-    - Map `` ` `` → (`"`, `"`)
-    - Map `\` → (`]`, `}`)
-    - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.8_
+    - Map `;` → (`ç`, `Ç`) - ABNT2 Cedilla Position
+    - Map `]` → (`[`, `{`) - ABNT2 Bracket Key Position
+    - Map `\` → (`]`, `}`) - ABNT2 Close Bracket Position
+    - Map `/` → (`;`, `:`) - ABNT2 Semicolon Position
+    - _Requirements: 1.1, 1.2, 1.7, 1.8, 1.9, 1.10, 1.11, 1.12_
 
   - [x]* 2.2 Write property test for position mapping
 
@@ -55,9 +56,11 @@
 
   - [x] 2.3 Implement dead key trigger detection
 
-    - Identify dead key triggers: `'` (tilde), `[` (acute), `]` (grave)
+    - Identify dead key triggers based on corrected ABNT2 mapping:
+      - `'` (unshifted) → Tilde (~), `'` (shifted) → Circumflex (^)
+      - `[` (unshifted) → Acute (´), `[` (shifted) → Grave (`)
     - Return `Suppress` action and store accent type
-    - _Requirements: 1.5, 1.6, 1.7_
+    - _Requirements: 1.3, 1.4, 1.5, 1.6_
 
   - [x]* 2.4 Write property test for dead key triggers
 

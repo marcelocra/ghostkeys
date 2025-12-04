@@ -180,8 +180,8 @@ pub enum MapperState {
 pub enum AccentType {
     Tilde,      // ' key on US → ~ dead key on ABNT2
     Acute,      // [ key on US → ´ dead key on ABNT2
-    Grave,      // ] key on US → ` dead key on ABNT2
-    Circumflex, // Shift+[ on US → ^ dead key on ABNT2
+    Grave,      // Shift+[ on US → ` dead key on ABNT2
+    Circumflex, // Shift+' on US → ^ dead key on ABNT2
 }
 
 pub struct Mapper {
@@ -201,14 +201,14 @@ impl Mapper {
 
 **ABNT2 Position Mapping Table (US Key → ABNT2 Output):**
 
-| US Key | Unshifted Output | Shifted Output | Notes |
-|--------|------------------|----------------|-------|
-| `;`    | `ç`              | `Ç`            | Cedilla (direct) |
-| `` ` ``| `"`              | `"`            | Quote (ABNT2 position) |
-| `'`    | *dead key*       | *dead key*     | Tilde accent |
-| `[`    | *dead key*       | *dead key*     | Acute accent |
-| `]`    | *dead key*       | *dead key*     | Grave accent |
-| `\`    | `]`              | `}`            | Right bracket |
+| US Key (Physical) | Output (No Shift) | Output (Shift) | Logic |
+| :--- | :--- | :--- | :--- |
+| `[` (next to P) | Dead Key Acute (´) | Dead Key Grave (`) | ABNT2 Accent Key Position |
+| `]` (next to `[`) | `[` | `{` | ABNT2 Bracket Key Position |
+| `\` (above Enter) | `]` | `}` | ABNT2 Close Bracket Position |
+| `'` (next to ;) | Dead Key Tilde (~) | Dead Key Circumflex (^) | ABNT2 Tilde Key Position |
+| `;` (next to L) | `ç` | `Ç` | ABNT2 Cedilla Position |
+| `/` (next to .) | `;` | `:` | ABNT2 Semicolon Position |
 
 **Accent Combination Table:**
 
@@ -232,6 +232,12 @@ impl Mapper {
 | Acute  | `U`    | `Ú`      |
 | Grave  | `a`    | `à`      |
 | Grave  | `A`    | `À`      |
+| Circumflex | `a` | `â`     |
+| Circumflex | `A` | `Â`     |
+| Circumflex | `e` | `ê`     |
+| Circumflex | `E` | `Ê`     |
+| Circumflex | `o` | `ô`     |
+| Circumflex | `O` | `Ô`     |
 
 ## Data Models
 
@@ -273,27 +279,27 @@ Based on the prework analysis, the following correctness properties have been id
 
 ### Property 1: Position Mapping Correctness
 
-*For any* US key that has a direct ABNT2 position mapping (`;`, `` ` ``, `\`), when the Mapper processes that key in Idle state, the Mapper SHALL return a Replace action with the correct ABNT2 character, respecting shift state.
+*For any* US key that has a direct ABNT2 position mapping (`;`, `]`, `\`, `/`), when the Mapper processes that key in Idle state, the Mapper SHALL return a Replace action with the correct ABNT2 character, respecting shift state.
 
-**Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.8**
+**Validates: Requirements 1.1, 1.2, 1.7, 1.8, 1.9, 1.10, 1.11, 1.12**
 
 ### Property 2: Dead Key Trigger Transition
 
-*For any* dead key trigger key (`'`, `[`, `]`) pressed when the Mapper is in Idle state, the Mapper SHALL transition to PendingAccent state with the correct accent type and return a Suppress action.
+*For any* dead key trigger key (`'`, `[`) pressed when the Mapper is in Idle state, the Mapper SHALL transition to PendingAccent state with the correct accent type (Tilde/Circumflex for `'`, Acute/Grave for `[` based on shift state) and return a Suppress action.
 
-**Validates: Requirements 1.5, 1.6, 1.7, 3.2**
+**Validates: Requirements 1.3, 1.4, 1.5, 1.6, 3.2**
 
 ### Property 3: Dead Key Combination Correctness
 
 *For any* valid accent type and combinable character pair from the accent combination table, when the Mapper is in PendingAccent state and processes that character, the Mapper SHALL return a Replace action with the correct accented character and transition to Idle state.
 
-**Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 2.10, 2.11, 3.3**
+**Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 2.10, 2.11, 2.12, 2.13, 2.14, 3.3**
 
 ### Property 4: Non-Combinable Character Fallback
 
 *For any* accent type and non-combinable character (not in the combination table), when the Mapper is in PendingAccent state and processes that character, the Mapper SHALL return a ReplaceMultiple action containing the accent character followed by the pressed character, and transition to Idle state.
 
-**Validates: Requirements 2.12, 2.13, 3.4**
+**Validates: Requirements 2.15, 2.16, 3.4**
 
 ### Property 5: State Machine Timeout Behavior
 
