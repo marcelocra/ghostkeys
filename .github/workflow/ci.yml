@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-windows:
+    name: Build & Test (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check Format
+        run: cargo fmt -- --check
+
+      - name: Run Clippy (Linting)
+        run: cargo clippy -- -D warnings
+
+      - name: Build
+        run: cargo build --release --verbose
+
+      - name: Run Tests
+        # Property tests do Mapper rodam aqui
+        run: cargo test --verbose
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghostkeys-windows
+          path: target/release/ghostkeys.exe
