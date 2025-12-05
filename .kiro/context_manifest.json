@@ -1,0 +1,20 @@
+{
+  "mcp_strategy": "static_context",
+  "active_context": {
+    "project": "GhostKeys",
+    "core_specs": [
+      ".kiro/specs/ghostkeys/requirements.md",
+      ".kiro/specs/ghostkeys/design.md"
+    ],
+    "architecture": {
+      "language": "Rust",
+      "platform_abstraction": "Trait-based (src/interceptor.rs)",
+      "target": "x86_64-pc-windows-msvc"
+    },
+    "constraints": [
+      "Latency < 10ms",
+      "Panic Safety",
+      "No external runtime deps"
+    ]
+  }
+}
