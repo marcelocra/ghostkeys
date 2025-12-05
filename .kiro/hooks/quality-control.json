@@ -1,0 +1,13 @@
+{
+  "name": "Quality Control",
+  "description": "Runs cargo check on Rust file saves to catch compilation errors early",
+  "version": "1.0.0",
+  "trigger": {
+    "type": "onFileSave",
+    "pattern": "**/*.rs"
+  },
+  "action": {
+    "type": "shell",
+    "command": "cargo check"
+  }
+}
