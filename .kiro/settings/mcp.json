@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ghostkeys-context": {
+      "command": "echo",
+      "args": ["GhostKeys MCP Context - ABNT2 keyboard emulation for US keyboards"],
+      "env": {},
+      "disabled": true,
+      "autoApprove": []
+    }
+  }
+}
