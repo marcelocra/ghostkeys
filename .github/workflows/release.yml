@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Build Release
+        run: cargo build --release --verbose
+
+      - name: Install git-cliff
+        run: cargo install git-cliff --version 2.7.0
+
+      - name: Generate Release Changelog
+        run: |
+          git cliff --current --strip header > CHANGELOG_RELEASE.md
+        shell: bash
+
+      - name: Calculate SHA256 Checksum
+        run: |
+          $hash = (Get-FileHash -Path "target\release\ghostkeys.exe" -Algorithm SHA256).Hash.ToLower()
+          "$hash  ghostkeys.exe" | Out-File -FilePath "ghostkeys.exe.sha256" -Encoding utf8
+        shell: pwsh
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: CHANGELOG_RELEASE.md
+          files: |
+            target/release/ghostkeys.exe
+            ghostkeys.exe.sha256
+          draft: false
+          prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
