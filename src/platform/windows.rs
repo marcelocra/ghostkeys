@@ -11,12 +11,12 @@ use std::sync::Arc;
 
 use windows::Win32::Foundation::{HINSTANCE, LPARAM, LRESULT, WPARAM};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    GetAsyncKeyState, SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT,
-    KEYEVENTF_KEYUP, KEYEVENTF_UNICODE, VK_LSHIFT, VK_RSHIFT, VK_SHIFT,
+    GetAsyncKeyState, SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP,
+    KEYEVENTF_UNICODE, VK_LSHIFT, VK_RSHIFT, VK_SHIFT,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    CallNextHookEx, SetWindowsHookExW, UnhookWindowsHookEx, HHOOK, KBDLLHOOKSTRUCT,
-    WH_KEYBOARD_LL, WM_KEYDOWN, WM_SYSKEYDOWN,
+    CallNextHookEx, SetWindowsHookExW, UnhookWindowsHookEx, HHOOK, KBDLLHOOKSTRUCT, WH_KEYBOARD_LL,
+    WM_KEYDOWN, WM_SYSKEYDOWN,
 };
 
 use crate::error::{GhostKeysError, Result};
@@ -34,13 +34,13 @@ thread_local! {
 /// Convert Windows virtual key code to our VirtualKey enum
 fn vk_to_virtual_key(vk: u32) -> VirtualKey {
     match vk {
-        0xBA => VirtualKey::Semicolon,    // VK_OEM_1 (;:)
-        0xDE => VirtualKey::Apostrophe,   // VK_OEM_7 ('")
-        0xDB => VirtualKey::LeftBracket,  // VK_OEM_4 ([{)
-        0xDD => VirtualKey::RightBracket, // VK_OEM_6 (]})
-        0xDC => VirtualKey::Backslash,    // VK_OEM_5 (\|)
-        0xBF => VirtualKey::Slash,        // VK_OEM_2 (/?)
-        0x20 => VirtualKey::Space,        // VK_SPACE
+        0xBA => VirtualKey::Semicolon,                       // VK_OEM_1 (;:)
+        0xDE => VirtualKey::Apostrophe,                      // VK_OEM_7 ('")
+        0xDB => VirtualKey::LeftBracket,                     // VK_OEM_4 ([{)
+        0xDD => VirtualKey::RightBracket,                    // VK_OEM_6 (]})
+        0xDC => VirtualKey::Backslash,                       // VK_OEM_5 (\|)
+        0xBF => VirtualKey::Slash,                           // VK_OEM_2 (/?)
+        0x20 => VirtualKey::Space,                           // VK_SPACE
         0x41..=0x5A => VirtualKey::Char((vk as u8) as char), // A-Z
         _ => VirtualKey::Other,
     }
@@ -169,7 +169,6 @@ unsafe extern "system" fn low_level_keyboard_proc(
     }
 }
 
-
 /// Windows keyboard interceptor using low-level keyboard hooks
 pub struct WindowsInterceptor {
     running: Arc<AtomicBool>,
@@ -186,8 +185,15 @@ impl WindowsInterceptor {
     /// Install the low-level keyboard hook
     fn install_hook(&self) -> Result<HHOOK> {
         unsafe {
-            let hook = SetWindowsHookExW(WH_KEYBOARD_LL, Some(low_level_keyboard_proc), HINSTANCE::default(), 0)
-                .map_err(|e| GhostKeysError::HookInstallError(format!("SetWindowsHookExW failed: {}", e)))?;
+            let hook = SetWindowsHookExW(
+                WH_KEYBOARD_LL,
+                Some(low_level_keyboard_proc),
+                HINSTANCE::default(),
+                0,
+            )
+            .map_err(|e| {
+                GhostKeysError::HookInstallError(format!("SetWindowsHookExW failed: {}", e))
+            })?;
             Ok(hook)
         }
     }

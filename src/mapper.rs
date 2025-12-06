@@ -101,15 +101,19 @@ impl Mapper {
         // Direct position mappings: (key, shift) -> output char
 
         // ; (next to L) -> ç/Ç (ABNT2 Cedilla Position)
-        self.position_map.insert((VirtualKey::Semicolon, false), 'ç');
+        self.position_map
+            .insert((VirtualKey::Semicolon, false), 'ç');
         self.position_map.insert((VirtualKey::Semicolon, true), 'Ç');
 
         // ] (next to [) -> [/{ (ABNT2 Bracket Key Position)
-        self.position_map.insert((VirtualKey::RightBracket, false), '[');
-        self.position_map.insert((VirtualKey::RightBracket, true), '{');
+        self.position_map
+            .insert((VirtualKey::RightBracket, false), '[');
+        self.position_map
+            .insert((VirtualKey::RightBracket, true), '{');
 
         // \ (above Enter) -> ]/} (ABNT2 Close Bracket Position)
-        self.position_map.insert((VirtualKey::Backslash, false), ']');
+        self.position_map
+            .insert((VirtualKey::Backslash, false), ']');
         self.position_map.insert((VirtualKey::Backslash, true), '}');
 
         // / (next to .) -> ;/: (ABNT2 Semicolon Position)
@@ -120,36 +124,60 @@ impl Mapper {
     /// Initialize the accent combination table
     fn init_accent_combinations(&mut self) {
         // Tilde combinations
-        self.accent_combinations.insert((AccentType::Tilde, 'a'), 'ã');
-        self.accent_combinations.insert((AccentType::Tilde, 'A'), 'Ã');
-        self.accent_combinations.insert((AccentType::Tilde, 'o'), 'õ');
-        self.accent_combinations.insert((AccentType::Tilde, 'O'), 'Õ');
-        self.accent_combinations.insert((AccentType::Tilde, 'n'), 'ñ');
-        self.accent_combinations.insert((AccentType::Tilde, 'N'), 'Ñ');
+        self.accent_combinations
+            .insert((AccentType::Tilde, 'a'), 'ã');
+        self.accent_combinations
+            .insert((AccentType::Tilde, 'A'), 'Ã');
+        self.accent_combinations
+            .insert((AccentType::Tilde, 'o'), 'õ');
+        self.accent_combinations
+            .insert((AccentType::Tilde, 'O'), 'Õ');
+        self.accent_combinations
+            .insert((AccentType::Tilde, 'n'), 'ñ');
+        self.accent_combinations
+            .insert((AccentType::Tilde, 'N'), 'Ñ');
 
         // Acute combinations
-        self.accent_combinations.insert((AccentType::Acute, 'a'), 'á');
-        self.accent_combinations.insert((AccentType::Acute, 'A'), 'Á');
-        self.accent_combinations.insert((AccentType::Acute, 'e'), 'é');
-        self.accent_combinations.insert((AccentType::Acute, 'E'), 'É');
-        self.accent_combinations.insert((AccentType::Acute, 'i'), 'í');
-        self.accent_combinations.insert((AccentType::Acute, 'I'), 'Í');
-        self.accent_combinations.insert((AccentType::Acute, 'o'), 'ó');
-        self.accent_combinations.insert((AccentType::Acute, 'O'), 'Ó');
-        self.accent_combinations.insert((AccentType::Acute, 'u'), 'ú');
-        self.accent_combinations.insert((AccentType::Acute, 'U'), 'Ú');
+        self.accent_combinations
+            .insert((AccentType::Acute, 'a'), 'á');
+        self.accent_combinations
+            .insert((AccentType::Acute, 'A'), 'Á');
+        self.accent_combinations
+            .insert((AccentType::Acute, 'e'), 'é');
+        self.accent_combinations
+            .insert((AccentType::Acute, 'E'), 'É');
+        self.accent_combinations
+            .insert((AccentType::Acute, 'i'), 'í');
+        self.accent_combinations
+            .insert((AccentType::Acute, 'I'), 'Í');
+        self.accent_combinations
+            .insert((AccentType::Acute, 'o'), 'ó');
+        self.accent_combinations
+            .insert((AccentType::Acute, 'O'), 'Ó');
+        self.accent_combinations
+            .insert((AccentType::Acute, 'u'), 'ú');
+        self.accent_combinations
+            .insert((AccentType::Acute, 'U'), 'Ú');
 
         // Grave combinations
-        self.accent_combinations.insert((AccentType::Grave, 'a'), 'à');
-        self.accent_combinations.insert((AccentType::Grave, 'A'), 'À');
+        self.accent_combinations
+            .insert((AccentType::Grave, 'a'), 'à');
+        self.accent_combinations
+            .insert((AccentType::Grave, 'A'), 'À');
 
         // Circumflex combinations
-        self.accent_combinations.insert((AccentType::Circumflex, 'a'), 'â');
-        self.accent_combinations.insert((AccentType::Circumflex, 'A'), 'Â');
-        self.accent_combinations.insert((AccentType::Circumflex, 'e'), 'ê');
-        self.accent_combinations.insert((AccentType::Circumflex, 'E'), 'Ê');
-        self.accent_combinations.insert((AccentType::Circumflex, 'o'), 'ô');
-        self.accent_combinations.insert((AccentType::Circumflex, 'O'), 'Ô');
+        self.accent_combinations
+            .insert((AccentType::Circumflex, 'a'), 'â');
+        self.accent_combinations
+            .insert((AccentType::Circumflex, 'A'), 'Â');
+        self.accent_combinations
+            .insert((AccentType::Circumflex, 'e'), 'ê');
+        self.accent_combinations
+            .insert((AccentType::Circumflex, 'E'), 'Ê');
+        self.accent_combinations
+            .insert((AccentType::Circumflex, 'o'), 'ô');
+        self.accent_combinations
+            .insert((AccentType::Circumflex, 'O'), 'Ô');
     }
 
     /// Process a key press and return the action to take
@@ -196,7 +224,12 @@ impl Mapper {
     }
 
     /// Process a key in PendingAccent state
-    fn process_pending_accent(&mut self, accent: AccentType, key: VirtualKey, shift: bool) -> KeyAction {
+    fn process_pending_accent(
+        &mut self,
+        accent: AccentType,
+        key: VirtualKey,
+        shift: bool,
+    ) -> KeyAction {
         self.state = MapperState::Idle;
         self.last_accent_time = None;
 
@@ -339,7 +372,10 @@ mod tests {
             mapper.process_key(VirtualKey::Apostrophe, false),
             KeyAction::Suppress
         );
-        assert_eq!(mapper.state(), &MapperState::PendingAccent(AccentType::Tilde));
+        assert_eq!(
+            mapper.state(),
+            &MapperState::PendingAccent(AccentType::Tilde)
+        );
 
         // Press 'a' -> should produce ã
         assert_eq!(
@@ -358,7 +394,10 @@ mod tests {
             mapper.process_key(VirtualKey::Apostrophe, true),
             KeyAction::Suppress
         );
-        assert_eq!(mapper.state(), &MapperState::PendingAccent(AccentType::Circumflex));
+        assert_eq!(
+            mapper.state(),
+            &MapperState::PendingAccent(AccentType::Circumflex)
+        );
 
         // Press 'a' -> should produce â
         assert_eq!(
@@ -377,7 +416,10 @@ mod tests {
             mapper.process_key(VirtualKey::LeftBracket, false),
             KeyAction::Suppress
         );
-        assert_eq!(mapper.state(), &MapperState::PendingAccent(AccentType::Acute));
+        assert_eq!(
+            mapper.state(),
+            &MapperState::PendingAccent(AccentType::Acute)
+        );
 
         // Press 'e' -> should produce é
         assert_eq!(
@@ -395,7 +437,10 @@ mod tests {
             mapper.process_key(VirtualKey::LeftBracket, true),
             KeyAction::Suppress
         );
-        assert_eq!(mapper.state(), &MapperState::PendingAccent(AccentType::Grave));
+        assert_eq!(
+            mapper.state(),
+            &MapperState::PendingAccent(AccentType::Grave)
+        );
 
         // Press 'a' -> should produce à
         assert_eq!(
@@ -441,5 +486,306 @@ mod tests {
             mapper.process_key(VirtualKey::Other, false),
             KeyAction::Pass
         );
+    }
+
+    // === Edge Case Tests ===
+
+    mod edge_case_tests {
+        use super::*;
+        use std::thread::sleep;
+
+        #[test]
+        fn test_rapid_typing_reset_tilde_cedilla() {
+            let mut mapper = Mapper::new();
+
+            // Press apostrophe (tilde dead key)
+            assert_eq!(
+                mapper.process_key(VirtualKey::Apostrophe, false),
+                KeyAction::Suppress
+            );
+            assert_eq!(
+                mapper.state(),
+                &MapperState::PendingAccent(AccentType::Tilde)
+            );
+
+            // Immediately press semicolon (which maps to ç in normal mode)
+            // NOTE: Current behavior - when in PendingAccent state and a non-character
+            // key (like Semicolon) is pressed, only the accent is output and the
+            // key's normal mapping is lost. This documents the current behavior.
+            // Expected: KeyAction::ReplaceMultiple(vec!['~', 'ç'])
+            // Actual: KeyAction::Replace('~')
+            assert_eq!(
+                mapper.process_key(VirtualKey::Semicolon, false),
+                KeyAction::Replace('~')
+            );
+            // State should be back to Idle
+            assert_eq!(mapper.state(), &MapperState::Idle);
+        }
+
+        #[test]
+        fn test_rapid_typing_reset_tilde_with_combinable() {
+            let mut mapper = Mapper::new();
+
+            // Press apostrophe (tilde dead key)
+            assert_eq!(
+                mapper.process_key(VirtualKey::Apostrophe, false),
+                KeyAction::Suppress
+            );
+            assert_eq!(
+                mapper.state(),
+                &MapperState::PendingAccent(AccentType::Tilde)
+            );
+
+            // Immediately press 'a' (combinable with tilde)
+            assert_eq!(
+                mapper.process_key(VirtualKey::Char('a'), false),
+                KeyAction::Replace('ã')
+            );
+            // State should be back to Idle
+            assert_eq!(mapper.state(), &MapperState::Idle);
+
+            // Next key should work normally
+            assert_eq!(
+                mapper.process_key(VirtualKey::Char('b'), false),
+                KeyAction::Pass
+            );
+        }
+
+        #[test]
+        fn test_double_dead_key_sequence_tilde_then_circumflex() {
+            let mut mapper = Mapper::new();
+
+            // Press apostrophe (tilde dead key)
+            assert_eq!(
+                mapper.process_key(VirtualKey::Apostrophe, false),
+                KeyAction::Suppress
+            );
+            assert_eq!(
+                mapper.state(),
+                &MapperState::PendingAccent(AccentType::Tilde)
+            );
+
+            // Press Shift+apostrophe (circumflex dead key)
+            // This should output the tilde character and enter pending circumflex state
+            assert_eq!(
+                mapper.process_key(VirtualKey::Apostrophe, true),
+                KeyAction::Replace('~')
+            );
+            // The state should now be pending the second dead key (circumflex)
+            // However, based on the code, process_pending_accent returns to Idle
+            // and doesn't recognize the second dead key
+            assert_eq!(mapper.state(), &MapperState::Idle);
+        }
+
+        #[test]
+        fn test_double_dead_key_sequence_acute_then_grave() {
+            let mut mapper = Mapper::new();
+
+            // Press left bracket (acute dead key)
+            assert_eq!(
+                mapper.process_key(VirtualKey::LeftBracket, false),
+                KeyAction::Suppress
+            );
+            assert_eq!(
+                mapper.state(),
+                &MapperState::PendingAccent(AccentType::Acute)
+            );
+
+            // Press Shift+left bracket (grave dead key)
+            // This should output the acute character
+            assert_eq!(
+                mapper.process_key(VirtualKey::LeftBracket, true),
+                KeyAction::Replace('´')
+            );
+            // State should be Idle (doesn't enter pending for the second dead key)
+            assert_eq!(mapper.state(), &MapperState::Idle);
+        }
+
+        #[test]
+        #[ignore] // FIXME: Logic missing - Backspace does not currently cancel pending accent
+        fn test_backspace_cancels_pending_accent() {
+            let mut mapper = Mapper::new();
+
+            // Press apostrophe (tilde dead key)
+            assert_eq!(
+                mapper.process_key(VirtualKey::Apostrophe, false),
+                KeyAction::Suppress
+            );
+            assert_eq!(
+                mapper.state(),
+                &MapperState::PendingAccent(AccentType::Tilde)
+            );
+
+            // Press backspace - should cancel the pending accent
+            // Note: VirtualKey doesn't have a Backspace variant yet
+            // This test documents the expected behavior
+            // Uncomment when Backspace support is added:
+            // assert_eq!(
+            //     mapper.process_key(VirtualKey::Backspace, false),
+            //     KeyAction::Pass
+            // );
+            // assert_eq!(mapper.state(), &MapperState::Idle);
+        }
+
+        #[test]
+        fn test_timeout_boundary_before_timeout() {
+            let mut mapper = Mapper::new();
+
+            // Press apostrophe (tilde dead key)
+            assert_eq!(
+                mapper.process_key(VirtualKey::Apostrophe, false),
+                KeyAction::Suppress
+            );
+            assert_eq!(
+                mapper.state(),
+                &MapperState::PendingAccent(AccentType::Tilde)
+            );
+
+            // Wait 499ms (just before timeout)
+            sleep(Duration::from_millis(499));
+
+            // Check timeout - should still be pending (no timeout yet)
+            assert_eq!(mapper.check_timeout(), None);
+            assert_eq!(
+                mapper.state(),
+                &MapperState::PendingAccent(AccentType::Tilde)
+            );
+        }
+
+        #[test]
+        fn test_timeout_boundary_at_timeout() {
+            let mut mapper = Mapper::new();
+
+            // Press apostrophe (tilde dead key)
+            assert_eq!(
+                mapper.process_key(VirtualKey::Apostrophe, false),
+                KeyAction::Suppress
+            );
+            assert_eq!(
+                mapper.state(),
+                &MapperState::PendingAccent(AccentType::Tilde)
+            );
+
+            // Wait 500ms (exactly at timeout)
+            sleep(Duration::from_millis(500));
+
+            // Check timeout - should flush the accent
+            assert_eq!(mapper.check_timeout(), Some(KeyAction::Replace('~')));
+            assert_eq!(mapper.state(), &MapperState::Idle);
+        }
+
+        #[test]
+        fn test_timeout_boundary_after_timeout() {
+            let mut mapper = Mapper::new();
+
+            // Press apostrophe (tilde dead key)
+            assert_eq!(
+                mapper.process_key(VirtualKey::Apostrophe, false),
+                KeyAction::Suppress
+            );
+            assert_eq!(
+                mapper.state(),
+                &MapperState::PendingAccent(AccentType::Tilde)
+            );
+
+            // Wait 501ms (after timeout)
+            sleep(Duration::from_millis(501));
+
+            // Check timeout - should flush the accent
+            assert_eq!(mapper.check_timeout(), Some(KeyAction::Replace('~')));
+            assert_eq!(mapper.state(), &MapperState::Idle);
+        }
+
+        #[test]
+        fn test_timeout_with_no_pending_accent() {
+            let mut mapper = Mapper::new();
+
+            // In Idle state, timeout check should return None
+            assert_eq!(mapper.check_timeout(), None);
+            assert_eq!(mapper.state(), &MapperState::Idle);
+        }
+
+        #[test]
+        fn test_multiple_rapid_dead_keys_with_combinable() {
+            let mut mapper = Mapper::new();
+
+            // Test rapid sequence: dead key -> combinable -> dead key -> combinable
+
+            // First: tilde + a = ã
+            assert_eq!(
+                mapper.process_key(VirtualKey::Apostrophe, false),
+                KeyAction::Suppress
+            );
+            assert_eq!(
+                mapper.process_key(VirtualKey::Char('a'), false),
+                KeyAction::Replace('ã')
+            );
+            assert_eq!(mapper.state(), &MapperState::Idle);
+
+            // Second: acute + e = é
+            assert_eq!(
+                mapper.process_key(VirtualKey::LeftBracket, false),
+                KeyAction::Suppress
+            );
+            assert_eq!(
+                mapper.process_key(VirtualKey::Char('e'), false),
+                KeyAction::Replace('é')
+            );
+            assert_eq!(mapper.state(), &MapperState::Idle);
+
+            // Third: circumflex + o = ô
+            assert_eq!(
+                mapper.process_key(VirtualKey::Apostrophe, true),
+                KeyAction::Suppress
+            );
+            assert_eq!(
+                mapper.process_key(VirtualKey::Char('o'), false),
+                KeyAction::Replace('ô')
+            );
+            assert_eq!(mapper.state(), &MapperState::Idle);
+        }
+
+        #[test]
+        fn test_dead_key_with_shifted_character() {
+            let mut mapper = Mapper::new();
+
+            // Press apostrophe (tilde dead key)
+            assert_eq!(
+                mapper.process_key(VirtualKey::Apostrophe, false),
+                KeyAction::Suppress
+            );
+
+            // Press Shift+A (capital A combinable with tilde)
+            assert_eq!(
+                mapper.process_key(VirtualKey::Char('a'), true),
+                KeyAction::Replace('Ã')
+            );
+            assert_eq!(mapper.state(), &MapperState::Idle);
+        }
+
+        #[test]
+        fn test_reset_clears_pending_accent() {
+            let mut mapper = Mapper::new();
+
+            // Press apostrophe (tilde dead key)
+            assert_eq!(
+                mapper.process_key(VirtualKey::Apostrophe, false),
+                KeyAction::Suppress
+            );
+            assert_eq!(
+                mapper.state(),
+                &MapperState::PendingAccent(AccentType::Tilde)
+            );
+
+            // Reset the mapper
+            mapper.reset();
+            assert_eq!(mapper.state(), &MapperState::Idle);
+
+            // Next key should work normally (not combined with the reset accent)
+            assert_eq!(
+                mapper.process_key(VirtualKey::Char('a'), false),
+                KeyAction::Pass
+            );
+        }
     }
 }

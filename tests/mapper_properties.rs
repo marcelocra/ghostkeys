@@ -23,7 +23,7 @@ fn position_key_strategy() -> impl Strategy<Value = VirtualKey> {
 /// Note: ] is no longer a dead key in the corrected mapping
 fn dead_key_strategy() -> impl Strategy<Value = VirtualKey> {
     prop_oneof![
-        Just(VirtualKey::Apostrophe),  // ' -> Tilde (unshifted), Circumflex (shifted)
+        Just(VirtualKey::Apostrophe), // ' -> Tilde (unshifted), Circumflex (shifted)
         Just(VirtualKey::LeftBracket), // [ -> Acute (unshifted), Grave (shifted)
     ]
 }
