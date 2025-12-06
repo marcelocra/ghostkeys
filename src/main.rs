@@ -61,14 +61,14 @@ fn main() {
     // Spawn keyboard interceptor thread
     let _hook_thread = thread::spawn(move || {
         let mut interceptor = create_interceptor();
-        
+
         if let Err(e) = interceptor.start(state_for_hook) {
             eprintln!("Failed to start keyboard interceptor: {:?}", e);
             return;
         }
-        
+
         println!("Keyboard interceptor started successfully!");
-        
+
         // Keep thread alive - on Windows the hook needs a message loop
         // The main thread's event loop handles this, but we park here
         // to keep the interceptor alive
@@ -82,7 +82,7 @@ fn main() {
                 }
             }
         }
-        
+
         #[cfg(not(target_os = "windows"))]
         {
             // On Linux, just park the thread
@@ -107,8 +107,7 @@ fn main() {
 
     // Create icon from RGBA data
     let icon_rgba = create_icon_rgba(true);
-    let icon = tray_icon::Icon::from_rgba(icon_rgba, 32, 32)
-        .expect("Failed to create icon");
+    let icon = tray_icon::Icon::from_rgba(icon_rgba, 32, 32).expect("Failed to create icon");
 
     // Build tray icon
     let tray_icon = TrayIconBuilder::new()
@@ -123,7 +122,6 @@ fn main() {
     // Store menu item IDs for event handling
     let pause_id = pause_item.id().clone();
     let exit_id = exit_item.id().clone();
-
 
     // Run event loop
     event_loop.run(move |event, _, control_flow| {
@@ -141,13 +139,13 @@ fn main() {
             if menu_event.id == pause_id {
                 let currently_active = is_active.load(Ordering::SeqCst);
                 is_active.store(!currently_active, Ordering::SeqCst);
-                
+
                 if currently_active {
                     println!("GhostKeys paused");
                     status_item.set_text("GhostKeys: Paused");
                     pause_item.set_text("Resume");
                     let _ = state.set_mode(state::OperationMode::Passthrough);
-                    
+
                     // Update icon to yellow (paused)
                     let paused_icon = create_icon_rgba(false);
                     if let Ok(icon) = tray_icon::Icon::from_rgba(paused_icon, 32, 32) {
@@ -159,7 +157,7 @@ fn main() {
                     status_item.set_text("GhostKeys: Active");
                     pause_item.set_text("Pause");
                     let _ = state.set_mode(state::OperationMode::Active);
-                    
+
                     // Update icon to green (active)
                     let active_icon = create_icon_rgba(true);
                     if let Ok(icon) = tray_icon::Icon::from_rgba(active_icon, 32, 32) {
