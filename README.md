@@ -42,3 +42,84 @@ This project was built for **Kiroween 2025** using a **Spec-Driven Development**
 -   **Core:** `windows-rs` (Win32 Hooks)
 -   **UI:** `tray-icon` + `tao`
 -   **Dev:** Kiro.dev
+
+## 🔧 Development
+
+### Prerequisites
+
+**Using DevContainer (Recommended):**
+Open in VS Code/Kiro with the Dev Containers extension. All dependencies are pre-installed.
+
+**Manual Setup (Linux/WSL):**
+
+```bash
+# Install system dependencies
+sudo apt-get update && sudo apt-get install -y \
+    libx11-dev libxcb1-dev libxkbcommon-dev pkg-config \
+    libxi-dev libxtst-dev libxrandr-dev libxcursor-dev \
+    libgtk-3-dev clang lld libxdo-dev libayatana-appindicator3-dev
+
+# Install Rust tools
+cargo install cargo-xwin just git-cliff
+```
+
+### Task Runner
+
+We use [just](https://github.com/casey/just) as our task runner (like npm scripts):
+
+```bash
+# Install just
+cargo install just
+
+# See all available commands
+just
+
+# Common tasks
+just build              # Build debug
+just build-release      # Build release
+just build-windows      # Cross-compile to Windows
+just test               # Run tests
+just lint               # Run clippy
+just fmt                # Format code
+just ci                 # Run all CI checks
+```
+
+### Building
+
+```bash
+# Linux (native)
+cargo build --release
+
+# Windows (cross-compile from Linux)
+cargo xwin build --target x86_64-pc-windows-msvc --release
+
+# Output: target/x86_64-pc-windows-msvc/release/ghostkeys.exe
+```
+
+### Testing
+
+```bash
+cargo test                    # Run all tests
+cargo test -- --nocapture     # With output
+just test-verbose             # Same as above
+```
+
+## 📦 Release Process
+
+Releases are automated via GitHub Actions. To create a release:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+This triggers the workflow that:
+
+1. Builds `ghostkeys.exe` on Windows
+2. Generates changelog from commits
+3. Creates SHA256 checksum
+4. Publishes GitHub Release
+
+## 📄 License
+
+Apache-2.0 - See [LICENSE](LICENSE) for details.

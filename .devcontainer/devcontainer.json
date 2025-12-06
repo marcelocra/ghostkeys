@@ -35,7 +35,7 @@
     "DEVMAGIC_DOTFILES_REPO": "${localEnv:DEVMAGIC_DOTFILES_REPO}",
     "DEVMAGIC_DOTFILES_BRANCH": "${localEnv:DEVMAGIC_DOTFILES_BRANCH}"
   },
-  "postCreateCommand": "curl -fsSL https://devmagic.run/setup | bash",
+  "postCreateCommand": "curl -fsSL https://devmagic.run/setup | bash && sudo apt-get update && sudo apt-get install -y libx11-dev libxcb1-dev libxkbcommon-dev pkg-config libxi-dev libxtst-dev libxrandr-dev libxcursor-dev libgtk-3-dev clang lld libxdo-dev libayatana-appindicator3-dev && cargo install cargo-xwin",
 
   // All the commented out features are from the official repository. More options at:
   // https://github.com/devcontainers/features/tree/main/src

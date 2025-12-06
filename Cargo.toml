@@ -3,7 +3,7 @@ name = "ghostkeys"
 version = "0.1.0"
 edition = "2021"
 description = "ABNT2 keyboard layout emulation on US keyboards"
-license = "MIT"
+license = "Apache-2.0"
 repository = "https://github.com/yourusername/ghostkeys"
 
 [dependencies]
