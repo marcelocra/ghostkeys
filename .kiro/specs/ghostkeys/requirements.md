@@ -20,6 +20,8 @@ GhostKeys is a Windows System Tray application written in Rust that enables flue
 - **Active Mode**: A mode where GhostKeys intercepts and remaps keyboard input
 - **Passthrough Mode**: A mode where GhostKeys does not modify keyboard input
 - **System Tray**: The notification area in the Windows taskbar where background applications display icons
+- **Recursion Protection**: An internal flag (`IS_INJECTING`) that prevents the hook from processing keys injected by GhostKeys itself
+- **Thread-Local Storage**: A mechanism to store data that is unique to each thread, avoiding mutex locking overhead
 
 ## Requirements
 
@@ -90,16 +92,22 @@ GhostKeys is a Windows System Tray application written in Rust that enables flue
 
 ### Requirement 4: System Tray Integration
 
-**User Story:** As a user, I want GhostKeys to run in the System Tray with a simple toggle, so that I can enable or disable remapping without a visible window.
+**User Story:** As a user, I want GhostKeys to run in the System Tray with visual feedback and a context menu, so that I can see the current state and control the application without a visible window.
 
 #### Acceptance Criteria
 
-1. WHEN GhostKeys starts, THEN GhostKeys SHALL display an icon in the Windows System Tray
-2. WHEN the user right-clicks the System Tray icon, THEN GhostKeys SHALL display a context menu with options
-3. WHEN the user selects "Disable" from the context menu, THEN GhostKeys SHALL enter Passthrough Mode and update the menu to show "Enable"
-4. WHEN the user selects "Enable" from the context menu, THEN GhostKeys SHALL enter Active Mode and update the menu to show "Disable"
-5. WHEN the user selects "Exit" from the context menu, THEN GhostKeys SHALL release the keyboard hook and terminate gracefully
-6. WHEN GhostKeys starts, THEN GhostKeys SHALL default to Active Mode
+1. WHEN GhostKeys starts, THEN GhostKeys SHALL display a 32x32 pixel icon in the Windows System Tray
+2. WHEN GhostKeys is in Active Mode, THEN GhostKeys SHALL display the tray icon with a green border or center indicator
+3. WHEN GhostKeys is in Passthrough Mode, THEN GhostKeys SHALL display the tray icon with a yellow or orange indicator
+4. WHEN the user hovers over the System Tray icon, THEN GhostKeys SHALL display a tooltip showing the current state (e.g., "GhostKeys - Active" or "GhostKeys - Paused")
+5. WHEN the user right-clicks the System Tray icon, THEN GhostKeys SHALL display a context menu with options
+6. WHEN the context menu is displayed, THEN GhostKeys SHALL show a non-clickable status indicator item displaying the current state
+7. WHEN the user selects "Pause" from the context menu, THEN GhostKeys SHALL enter Passthrough Mode and update the menu to show "Resume"
+8. WHEN the user selects "Resume" from the context menu, THEN GhostKeys SHALL enter Active Mode and update the menu to show "Pause"
+9. WHEN the user selects "Help / Mappings" from the context menu, THEN GhostKeys SHALL open a native Windows Message Box displaying the cheat sheet of US key to ABNT2 character mappings
+10. WHEN the user selects "About" from the context menu, THEN GhostKeys SHALL open a native dialog displaying version information and credits
+11. WHEN the user selects "Exit" from the context menu, THEN GhostKeys SHALL release the keyboard hook and terminate gracefully
+12. WHEN GhostKeys starts, THEN GhostKeys SHALL default to Active Mode
 
 ### Requirement 5: Performance and Latency
 
@@ -110,6 +118,7 @@ GhostKeys is a Windows System Tray application written in Rust that enables flue
 1. WHILE GhostKeys is processing a keystroke, GhostKeys SHALL complete the processing within 10 milliseconds
 2. WHILE GhostKeys is running, GhostKeys SHALL consume less than 50 megabytes of memory
 3. WHILE GhostKeys is idle, GhostKeys SHALL consume less than 1 percent CPU usage
+4. WHILE GhostKeys is processing keystrokes, GhostKeys SHALL use thread-local storage for the Mapper to avoid mutex locking on the hot path
 
 ### Requirement 6: Panic Safety and Hook Release
 
@@ -128,7 +137,44 @@ GhostKeys is a Windows System Tray application written in Rust that enables flue
 
 #### Acceptance Criteria
 
-1. WHEN GhostKeys starts, THEN GhostKeys SHALL install a low-level keyboard hook using the Windows API
-2. WHEN GhostKeys is in Active Mode and intercepts a remappable key, THEN GhostKeys SHALL suppress the original keystroke and inject the replacement character
+1. WHEN GhostKeys starts, THEN GhostKeys SHALL install a low-level keyboard hook using the Windows API (WH_KEYBOARD_LL via windows-rs)
+2. WHEN GhostKeys is in Active Mode and intercepts a remappable key, THEN GhostKeys SHALL suppress the original keystroke and inject the replacement character using SendInput
 3. WHEN GhostKeys is in Passthrough Mode, THEN GhostKeys SHALL allow all keystrokes to pass through unmodified
 4. WHEN GhostKeys terminates, THEN GhostKeys SHALL uninstall the keyboard hook and release all system resources
+5. WHEN GhostKeys injects a replacement character, THEN GhostKeys SHALL set an internal recursion protection flag (IS_INJECTING) to prevent the hook from processing injected keys
+
+
+
+### Requirement 8: Cross-Platform Development Support
+
+**User Story:** As a developer, I want to develop and test GhostKeys on Linux while targeting Windows, so that I can use my preferred development environment without needing a Windows machine for every code change.
+
+#### Acceptance Criteria
+
+1. WHEN a developer builds GhostKeys on Linux, THEN the build system SHALL support cross-compilation to Windows using cargo-xwin with the MSVC toolchain
+2. WHEN a developer runs tests on Linux, THEN the test suite SHALL execute all pure logic tests (mapper, state machine) without requiring Windows
+3. WHEN the codebase is structured, THEN GhostKeys SHALL use a KeyboardInterceptor trait to abstract platform-specific code into separate modules (windows.rs, linux.rs)
+4. WHEN a developer uses VS Code, THEN the project SHALL support development inside a Linux DevContainer
+
+### Requirement 9: Automation and Quality Assurance
+
+**User Story:** As a developer, I want automated quality checks and release processes, so that I can maintain code quality and release new versions efficiently.
+
+#### Acceptance Criteria
+
+1. WHEN a developer saves a code file, THEN Kiro agent hooks SHALL automatically run cargo check via the quality-control.json hook configuration
+2. WHEN code is pushed to the repository, THEN the CI pipeline (ci.yml) SHALL run tests and build on a windows-latest GitHub Actions runner
+3. WHEN a version tag (v*) is pushed, THEN the release pipeline (release.yml) SHALL build the release binary
+4. WHEN a release is created, THEN the release pipeline SHALL generate a changelog automatically using git-cliff and Conventional Commits
+5. WHEN a release is created, THEN the release pipeline SHALL calculate SHA256 checksums for all artifacts
+6. WHEN a release is created, THEN the release pipeline SHALL publish a GitHub Release with all artifacts attached
+
+### Requirement 10: Documentation Standards
+
+**User Story:** As a developer or contributor, I want clear documentation standards, so that I can understand the project architecture and contribute effectively.
+
+#### Acceptance Criteria
+
+1. WHEN architectural decisions are made, THEN the team SHALL document them as Architecture Decision Records (ADRs) in the docs/adr/ directory
+2. WHEN the project is configured, THEN the project SHALL maintain requirements and design documents in the .kiro/specs/ directory as the source of truth
+3. WHEN AI agents interact with the project, THEN the project SHALL provide context via a Static Context Manifest (.kiro/context_manifest.json)
