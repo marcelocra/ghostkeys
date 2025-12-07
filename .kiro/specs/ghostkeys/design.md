@@ -13,6 +13,8 @@ The design prioritizes:
 - Panic safety with guaranteed hook release
 - Clean separation between UI, hook, and mapping logic
 - Thread-safe communication between components
+- Recursion protection to prevent processing injected keys
+- Thread-local storage for hot-path performance
 
 ## Architecture
 
@@ -148,6 +150,8 @@ pub fn create_interceptor() -> Box<dyn KeyboardInterceptor>;
 - Uses `windows-rs` (Microsoft official bindings) for keyboard hooks
 - Implements `SetWindowsHookEx` (WH_KEYBOARD_LL) for key interception
 - Uses `SendInput` for key injection
+- Implements recursion protection via `IS_INJECTING` thread-local flag
+- Uses `thread_local!` storage for Mapper to avoid mutex locking on hot path
 - Production-ready, security-auditable
 
 `platform/linux.rs` - Development/testing:
@@ -159,9 +163,34 @@ pub fn create_interceptor() -> Box<dyn KeyboardInterceptor>;
 Responsibilities:
 - Install and manage the low-level keyboard hook
 - Read shared state to determine current mode
-- Delegate keystroke processing to the Mapper
+- Delegate keystroke processing to the Mapper (via thread-local storage)
 - Inject replacement characters when needed
+- Set recursion protection flag during injection to prevent "Loop of Death"
 - Guarantee hook release on panic or shutdown
+
+**Recursion Protection Pattern:**
+
+```rust
+thread_local! {
+    static IS_INJECTING: Cell<bool> = Cell::new(false);
+    static MAPPER: RefCell<Mapper> = RefCell::new(Mapper::new());
+}
+
+fn hook_callback(key: VirtualKey, shift: bool) -> KeyAction {
+    // Skip processing if we're injecting our own keys
+    if IS_INJECTING.with(|f| f.get()) {
+        return KeyAction::Pass;
+    }
+    
+    MAPPER.with(|m| m.borrow_mut().process_key(key, shift))
+}
+
+fn inject_char(c: char) {
+    IS_INJECTING.with(|f| f.set(true));
+    // ... SendInput call ...
+    IS_INJECTING.with(|f| f.set(false));
+}
+```
 
 ### 3. Mapper (`mapper.rs`)
 
@@ -266,8 +295,77 @@ impl SharedState {
 ```rust
 pub enum TrayMenuAction {
     ToggleMode,
+    ShowHelp,
+    ShowAbout,
     Exit,
 }
+```
+
+### System Tray Icon
+
+The tray icon provides visual feedback about the current application state:
+
+```rust
+pub struct TrayIconManager {
+    icon_active: Icon,    // Green border/center - Active mode
+    icon_paused: Icon,    // Yellow/orange - Passthrough mode
+    current_mode: OperationMode,
+}
+
+impl TrayIconManager {
+    pub fn new() -> Result<Self, GhostKeysError>;
+    pub fn update_icon(&mut self, mode: OperationMode);
+    pub fn get_tooltip(&self) -> &str;  // "GhostKeys - Active" or "GhostKeys - Paused"
+}
+```
+
+**Icon Specifications:**
+- Size: 32x32 pixels
+- Active Mode: Green border or center indicator
+- Passthrough Mode: Yellow/orange indicator
+- Generated dynamically at runtime
+
+**Context Menu Structure:**
+```
+┌─────────────────────────┐
+│ Status: Active          │  ← Non-clickable status indicator
+├─────────────────────────┤
+│ Pause                   │  ← Toggles to "Resume" when paused
+│ Help / Mappings         │  ← Opens MessageBox with cheat sheet
+│ About                   │  ← Opens dialog with version info
+├─────────────────────────┤
+│ Exit                    │
+└─────────────────────────┘
+```
+
+**Help Dialog Content:**
+```
+GhostKeys - ABNT2 Key Mappings
+
+US Key → ABNT2 Output
+─────────────────────
+;      → ç / Ç
+'      → ~ (dead) / ^ (dead)
+[      → ´ (dead) / ` (dead)
+]      → [ / {
+\      → ] / }
+/      → ; / :
+
+Dead Key Combinations:
+~ + a/o/n → ã/õ/ñ
+´ + a/e/i/o/u → á/é/í/ó/ú
+` + a → à
+^ + a/e/o → â/ê/ô
+```
+
+**About Dialog Content:**
+```
+GhostKeys v0.1.0
+
+ABNT2 keyboard emulation for US layouts.
+Type Portuguese naturally on any US keyboard.
+
+https://github.com/user/ghostkeys
 ```
 
 
@@ -309,9 +407,9 @@ Based on the prework analysis, the following correctness properties have been id
 
 ### Property 6: Enable/Disable Toggle Round-Trip
 
-*For any* SharedState, toggling mode twice (Disable then Enable) SHALL restore the state to Active mode.
+*For any* SharedState, toggling mode twice (Pause then Resume) SHALL restore the state to Active mode.
 
-**Validates: Requirements 4.3, 4.4**
+**Validates: Requirements 4.7, 4.8**
 
 ### Property 7: Passthrough Mode Transparency
 
@@ -324,6 +422,18 @@ Based on the prework analysis, the following correctness properties have been id
 *For any* keystroke processed by the Mapper, the processing time SHALL be less than 10 milliseconds.
 
 **Validates: Requirements 5.1**
+
+### Property 9: Recursion Protection
+
+*For any* character injected by GhostKeys via SendInput, when the IS_INJECTING flag is set, the hook callback SHALL return Pass without processing the keystroke.
+
+**Validates: Requirements 7.5**
+
+### Property 10: Tooltip State Consistency
+
+*For any* OperationMode, the tooltip text returned by TrayIconManager SHALL accurately reflect the current mode ("GhostKeys - Active" for Active, "GhostKeys - Paused" for Passthrough).
+
+**Validates: Requirements 4.4**
 
 ## Error Handling
 
@@ -372,6 +482,89 @@ pub enum GhostKeysError {
 | Hook install failure | Log error, show tray notification, exit gracefully |
 | State lock poisoned | Release hook, terminate application |
 | Tray icon failure | Continue without tray (headless mode) |
+
+## Development Infrastructure
+
+### Cross-Platform Development
+
+GhostKeys supports development on Linux while targeting Windows:
+
+**Build Configuration (`Cargo.toml`):**
+```toml
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation"] }
+
+[target.'cfg(unix)'.dependencies]
+rdev = "0.5"  # For Linux development/testing only
+```
+
+**Cross-Compilation with cargo-xwin:**
+```bash
+# Install cargo-xwin (one-time setup)
+cargo install cargo-xwin
+
+# Build Windows binary from Linux
+cargo xwin build --release --target x86_64-pc-windows-msvc
+```
+
+**DevContainer Configuration (`.devcontainer/devcontainer.json`):**
+```json
+{
+  "name": "GhostKeys Dev",
+  "image": "mcr.microsoft.com/devcontainers/rust:1",
+  "features": {
+    "ghcr.io/devcontainers/features/rust:1": {}
+  },
+  "postCreateCommand": "cargo install cargo-xwin"
+}
+```
+
+### CI/CD Pipelines
+
+**CI Pipeline (`.github/workflows/ci.yml`):**
+- Triggers on: push to main, pull requests
+- Runs on: `windows-latest` runner
+- Steps: cargo check, cargo test, cargo build
+
+**Release Pipeline (`.github/workflows/release.yml`):**
+- Triggers on: tags matching `v*`
+- Steps:
+  1. Build release binary (`cargo build --release`)
+  2. Generate changelog using `git-cliff` with Conventional Commits
+  3. Calculate SHA256 checksums for artifacts
+  4. Create GitHub Release with artifacts attached
+
+**Kiro Agent Hooks (`.kiro/hooks/quality-control.json`):**
+```json
+{
+  "name": "Quality Control",
+  "trigger": { "type": "onFileSave", "pattern": "**/*.rs" },
+  "action": { "type": "shell", "command": "cargo check" }
+}
+```
+
+### Documentation Structure
+
+```
+docs/
+├── adr/                      # Architecture Decision Records
+│   ├── README.md
+│   ├── template.md
+│   ├── 0001-use-windows-rs-for-keyboard-hooks.md
+│   ├── 0002-position-based-mapping-strategy.md
+│   ├── 0003-thread-local-mapper-state.md
+│   └── 0004-cargo-xwin-for-cross-compilation.md
+└── library-research.md       # Security research on dependencies
+
+.kiro/
+├── specs/ghostkeys/          # Requirements and Design (source of truth)
+│   ├── requirements.md
+│   ├── design.md
+│   └── tasks.md
+├── context_manifest.json     # Static context for AI agents
+└── hooks/
+    └── quality-control.json  # Automated quality checks
+```
 
 ## Testing Strategy
 
