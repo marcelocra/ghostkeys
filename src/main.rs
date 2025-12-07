@@ -29,13 +29,13 @@ fn setup_panic_handler() {
     let original_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |panic_info| {
         eprintln!("GhostKeys panic detected! Releasing keyboard hook...");
-        
+
         // Release the keyboard hook to restore normal keyboard operation
         #[cfg(target_os = "windows")]
         {
             platform::windows::release_hook_on_panic();
         }
-        
+
         // Call the original panic handler
         original_hook(panic_info);
     }));
@@ -46,21 +46,17 @@ fn setup_panic_handler() {
 fn show_help_dialog() {
     use windows::core::PCWSTR;
     use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONINFORMATION, MB_OK};
-    
+
     let title: Vec<u16> = "GhostKeys - Key Mappings\0".encode_utf16().collect();
-    let content: Vec<u16> = "GhostKeys Mappings (US → ABNT2):\n\n\
-        [ (next to P) = Acute Accent (´)\n\
-        Shift + [     = Grave Accent (`)\n\
-        ] (next to [) = [\n\
-        ' (next to ;) = Tilde (~)\n\
-        Shift + '     = Circumflex (^)\n\
-        ; (next to L) = ç\n\
-        / (next to .) = ;\n\n\
-        Dead keys combine with vowels:\n\
-        ´ + a = á    ~ + a = ã    ` + a = à    ^ + a = â\0"
+    let content: Vec<u16> = "GhostKeys Mappings (US -> ABNT2):\n\n\
+        [ = Acute (´) / Backtick (`)\n\
+        ] = Bracket [ / Brace {\n\
+        \\ = Close Bracket ] / Close Brace }\n\
+        ' = Tilde (~) / Circumflex (^)\n\
+        ; = ç / Ç\0"
         .encode_utf16()
         .collect();
-    
+
     unsafe {
         MessageBoxW(
             None,
@@ -81,15 +77,12 @@ fn show_help_dialog() {
 fn show_about_dialog() {
     use windows::core::PCWSTR;
     use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONINFORMATION, MB_OK};
-    
+
     let title: Vec<u16> = "About GhostKeys\0".encode_utf16().collect();
-    let content: Vec<u16> = "GhostKeys v0.1.0\n\n\
-        ABNT2 keyboard layout emulation on US keyboards.\n\n\
-        Created for Kiroween 2025\n\n\
-        https://github.com/mclara/ghostkeys\0"
+    let content: Vec<u16> = "GhostKeys v1.0 - Created for Kiroween 2025\0"
         .encode_utf16()
         .collect();
-    
+
     unsafe {
         MessageBoxW(
             None,
@@ -134,7 +127,7 @@ fn create_icon_rgba(active: bool) -> Vec<u8> {
 fn main() {
     // Set up panic handler FIRST to ensure keyboard hook is released on crash
     setup_panic_handler();
-    
+
     println!("GhostKeys - ABNT2 keyboard layout emulation");
     println!("Platform: {}", std::env::consts::OS);
 
@@ -146,14 +139,14 @@ fn main() {
     // Spawn keyboard interceptor thread
     let _hook_thread = thread::spawn(move || {
         let mut interceptor = create_interceptor();
-        
+
         if let Err(e) = interceptor.start(state_for_hook) {
             eprintln!("Failed to start keyboard interceptor: {:?}", e);
             return;
         }
-        
+
         println!("Keyboard interceptor started successfully!");
-        
+
         // Keep thread alive - on Windows the hook needs a message loop
         // The main thread's event loop handles this, but we park here
         // to keep the interceptor alive
@@ -167,7 +160,7 @@ fn main() {
                 }
             }
         }
-        
+
         #[cfg(not(target_os = "windows"))]
         {
             // On Linux, just park the thread
@@ -235,31 +228,36 @@ fn main() {
         if let Ok(menu_event) = MenuEvent::receiver().try_recv() {
             if menu_event.id == pause_id {
                 let currently_active = is_active.load(Ordering::SeqCst);
-                is_active.store(!currently_active, Ordering::SeqCst);
-                
-                if currently_active {
-                    println!("GhostKeys paused");
-                    status_item.set_text("GhostKeys: Paused");
-                    pause_item.set_text("Resume");
-                    let _ = state.set_mode(state::OperationMode::Passthrough);
-                    
-                    // Update icon to yellow (paused)
-                    let paused_icon = create_icon_rgba(false);
-                    if let Ok(icon) = tray_icon::Icon::from_rgba(paused_icon, 32, 32) {
-                        let _ = tray_icon.set_icon(Some(icon));
-                        let _ = tray_icon.set_tooltip(Some("GhostKeys - ABNT2 Emulation (Paused)"));
-                    }
-                } else {
+                let new_active = !currently_active;
+                is_active.store(new_active, Ordering::SeqCst);
+
+                // Update global pause state for the hook
+                #[cfg(target_os = "windows")]
+                platform::windows::set_paused(!new_active);
+
+                if new_active {
                     println!("GhostKeys resumed");
                     status_item.set_text("GhostKeys: Active");
                     pause_item.set_text("Pause");
                     let _ = state.set_mode(state::OperationMode::Active);
-                    
+
                     // Update icon to green (active)
                     let active_icon = create_icon_rgba(true);
                     if let Ok(icon) = tray_icon::Icon::from_rgba(active_icon, 32, 32) {
                         let _ = tray_icon.set_icon(Some(icon));
                         let _ = tray_icon.set_tooltip(Some("GhostKeys - ABNT2 Emulation (Active)"));
+                    }
+                } else {
+                    println!("GhostKeys paused");
+                    status_item.set_text("GhostKeys: Paused");
+                    pause_item.set_text("Resume");
+                    let _ = state.set_mode(state::OperationMode::Passthrough);
+
+                    // Update icon to yellow (paused)
+                    let paused_icon = create_icon_rgba(false);
+                    if let Ok(icon) = tray_icon::Icon::from_rgba(paused_icon, 32, 32) {
+                        let _ = tray_icon.set_icon(Some(icon));
+                        let _ = tray_icon.set_tooltip(Some("GhostKeys - ABNT2 Emulation (Paused)"));
                     }
                 }
             } else if menu_event.id == help_id {
