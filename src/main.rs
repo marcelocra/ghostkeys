@@ -23,6 +23,88 @@ use tray_icon::{
     TrayIconBuilder,
 };
 
+/// Sets up a panic handler that releases the keyboard hook on panic.
+/// This prevents the user's keyboard from being "frozen" if the app crashes.
+fn setup_panic_handler() {
+    let original_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |panic_info| {
+        eprintln!("GhostKeys panic detected! Releasing keyboard hook...");
+        
+        // Release the keyboard hook to restore normal keyboard operation
+        #[cfg(target_os = "windows")]
+        {
+            platform::windows::release_hook_on_panic();
+        }
+        
+        // Call the original panic handler
+        original_hook(panic_info);
+    }));
+}
+
+/// Shows a native Windows message box with the key mappings help
+#[cfg(target_os = "windows")]
+fn show_help_dialog() {
+    use windows::core::PCWSTR;
+    use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONINFORMATION, MB_OK};
+    
+    let title: Vec<u16> = "GhostKeys - Key Mappings\0".encode_utf16().collect();
+    let content: Vec<u16> = "GhostKeys Mappings (US → ABNT2):\n\n\
+        [ (next to P) = Acute Accent (´)\n\
+        Shift + [     = Grave Accent (`)\n\
+        ] (next to [) = [\n\
+        ' (next to ;) = Tilde (~)\n\
+        Shift + '     = Circumflex (^)\n\
+        ; (next to L) = ç\n\
+        / (next to .) = ;\n\n\
+        Dead keys combine with vowels:\n\
+        ´ + a = á    ~ + a = ã    ` + a = à    ^ + a = â\0"
+        .encode_utf16()
+        .collect();
+    
+    unsafe {
+        MessageBoxW(
+            None,
+            PCWSTR::from_raw(content.as_ptr()),
+            PCWSTR::from_raw(title.as_ptr()),
+            MB_OK | MB_ICONINFORMATION,
+        );
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn show_help_dialog() {
+    println!("Help dialog is only available on Windows");
+}
+
+/// Shows a native Windows message box with about information
+#[cfg(target_os = "windows")]
+fn show_about_dialog() {
+    use windows::core::PCWSTR;
+    use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONINFORMATION, MB_OK};
+    
+    let title: Vec<u16> = "About GhostKeys\0".encode_utf16().collect();
+    let content: Vec<u16> = "GhostKeys v0.1.0\n\n\
+        ABNT2 keyboard layout emulation on US keyboards.\n\n\
+        Created for Kiroween 2025\n\n\
+        https://github.com/mclara/ghostkeys\0"
+        .encode_utf16()
+        .collect();
+    
+    unsafe {
+        MessageBoxW(
+            None,
+            PCWSTR::from_raw(content.as_ptr()),
+            PCWSTR::from_raw(title.as_ptr()),
+            MB_OK | MB_ICONINFORMATION,
+        );
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn show_about_dialog() {
+    println!("About dialog is only available on Windows");
+}
+
 /// Creates a simple 32x32 colored icon as RGBA bytes
 fn create_icon_rgba(active: bool) -> Vec<u8> {
     let mut rgba = Vec::with_capacity(32 * 32 * 4);
@@ -50,6 +132,9 @@ fn create_icon_rgba(active: bool) -> Vec<u8> {
 }
 
 fn main() {
+    // Set up panic handler FIRST to ensure keyboard hook is released on crash
+    setup_panic_handler();
+    
     println!("GhostKeys - ABNT2 keyboard layout emulation");
     println!("Platform: {}", std::env::consts::OS);
 
@@ -99,10 +184,18 @@ fn main() {
     let menu = Menu::new();
     let status_item = MenuItem::new("GhostKeys: Active", false, None);
     let pause_item = MenuItem::new("Pause", true, None);
+    let separator1 = tray_icon::menu::PredefinedMenuItem::separator();
+    let help_item = MenuItem::new("Help / Mappings", true, None);
+    let about_item = MenuItem::new("About", true, None);
+    let separator2 = tray_icon::menu::PredefinedMenuItem::separator();
     let exit_item = MenuItem::new("Exit", true, None);
 
     let _ = menu.append(&status_item);
     let _ = menu.append(&pause_item);
+    let _ = menu.append(&separator1);
+    let _ = menu.append(&help_item);
+    let _ = menu.append(&about_item);
+    let _ = menu.append(&separator2);
     let _ = menu.append(&exit_item);
 
     // Create icon from RGBA data
@@ -122,6 +215,8 @@ fn main() {
 
     // Store menu item IDs for event handling
     let pause_id = pause_item.id().clone();
+    let help_id = help_item.id().clone();
+    let about_id = about_item.id().clone();
     let exit_id = exit_item.id().clone();
 
 
@@ -167,6 +262,10 @@ fn main() {
                         let _ = tray_icon.set_tooltip(Some("GhostKeys - ABNT2 Emulation (Active)"));
                     }
                 }
+            } else if menu_event.id == help_id {
+                show_help_dialog();
+            } else if menu_event.id == about_id {
+                show_about_dialog();
             } else if menu_event.id == exit_id {
                 println!("Exiting GhostKeys...");
                 *control_flow = ControlFlow::Exit;

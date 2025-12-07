@@ -31,6 +31,22 @@ thread_local! {
     static IS_INJECTING: RefCell<bool> = RefCell::new(false);
 }
 
+// Global hook handle for panic handler access (separate from thread-local)
+static GLOBAL_HOOK_HANDLE: std::sync::Mutex<Option<isize>> = std::sync::Mutex::new(None);
+
+/// Release the keyboard hook from the panic handler
+/// This is called from the global panic hook to ensure the keyboard is freed
+pub fn release_hook_on_panic() {
+    if let Ok(mut handle) = GLOBAL_HOOK_HANDLE.lock() {
+        if let Some(raw_handle) = handle.take() {
+            unsafe {
+                let hhook = HHOOK(raw_handle as *mut std::ffi::c_void);
+                let _ = UnhookWindowsHookEx(hhook);
+            }
+        }
+    }
+}
+
 /// Convert Windows virtual key code to our VirtualKey enum
 fn vk_to_virtual_key(vk: u32) -> VirtualKey {
     match vk {
@@ -214,9 +230,16 @@ impl KeyboardInterceptor for WindowsInterceptor {
 
         // Install the hook
         let hook = self.install_hook()?;
+        
+        // Store in thread-local
         HOOK_HANDLE.with(|h| {
             *h.borrow_mut() = Some(hook);
         });
+        
+        // Store raw handle in global for panic handler
+        if let Ok(mut global) = GLOBAL_HOOK_HANDLE.lock() {
+            *global = Some(hook.0 as isize);
+        }
 
         self.running.store(true, Ordering::SeqCst);
         Ok(())
@@ -235,6 +258,11 @@ impl KeyboardInterceptor for WindowsInterceptor {
                 }
             }
         });
+        
+        // Clear global handle
+        if let Ok(mut global) = GLOBAL_HOOK_HANDLE.lock() {
+            *global = None;
+        }
 
         // Clear mapper
         MAPPER.with(|mapper| {
