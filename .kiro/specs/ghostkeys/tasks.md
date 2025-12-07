@@ -30,9 +30,7 @@
     - Define `MapperState` and `AccentType` enums
     - _Requirements: 3.1, 7.1_
 
-  - [x]* 1.4 Write unit tests for core types
-
-
+  - [x] 1.4 Write unit tests for core types
     - Test `SharedState` thread-safe access
     - Test `OperationMode` default values
     - _Requirements: 3.1_
@@ -47,8 +45,7 @@
     - Map `/` → (`;`, `:`) - ABNT2 Semicolon Position
     - _Requirements: 1.1, 1.2, 1.7, 1.8, 1.9, 1.10, 1.11, 1.12_
 
-  - [x]* 2.2 Write property test for position mapping
-
+  - [x] 2.2 Write property test for position mapping
     - **Property 1: Position Mapping Correctness**
     - **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.8**
     - Generate random position-mapped keys with shift states
@@ -62,8 +59,7 @@
     - Return `Suppress` action and store accent type
     - _Requirements: 1.3, 1.4, 1.5, 1.6_
 
-  - [x]* 2.4 Write property test for dead key triggers
-
+  - [x] 2.4 Write property test for dead key triggers
     - **Property 2: Dead Key Trigger Transition**
     - **Validates: Requirements 1.5, 1.6, 1.7, 3.2**
     - Generate random dead key triggers
@@ -81,8 +77,7 @@
     - Grave combinations: à, À
     - _Requirements: 2.1-2.11_
 
-  - [x]* 4.2 Write property test for dead key combinations
-
+  - [x] 4.2 Write property test for dead key combinations
     - **Property 3: Dead Key Combination Correctness**
     - **Validates: Requirements 2.1-2.11, 3.3**
     - Generate random valid accent + character pairs
@@ -103,8 +98,7 @@
     - Handle accent followed by space (output accent only)
     - _Requirements: 2.12, 2.13_
 
-  - [x]* 4.5 Write property test for non-combinable fallback
-
+  - [x] 4.5 Write property test for non-combinable fallback
     - **Property 4: Non-Combinable Character Fallback**
     - **Validates: Requirements 2.12, 2.13, 3.4**
     - Generate random accent + non-combinable character pairs
@@ -117,8 +111,7 @@
     - Return stored accent char and transition to Idle on timeout
     - _Requirements: 3.5_
 
-  - [x]* 4.7 Write property test for timeout behavior
-
+  - [x] 4.7 Write property test for timeout behavior
     - **Property 5: State Machine Timeout Behavior**
     - **Validates: Requirements 3.5**
     - Test that 500ms timeout outputs accent char and returns to Idle
@@ -160,18 +153,31 @@
     - Implement graceful shutdown via exit flag
     - _Requirements: 7.1, 7.4_
 
-  - [ ] 6.6 Integrate Mapper with Interceptor
-    - Create Mapper instance in hook thread
-    - Call `process_key()` for each keystroke
+  - [ ] 6.6 Integrate Mapper with Interceptor using thread-local storage
+    - Create `thread_local!` storage for Mapper instance
+    - Create `thread_local!` IS_INJECTING flag for recursion protection
+    - Call `process_key()` for each keystroke via thread-local Mapper
     - Execute returned `KeyAction` (Pass, Suppress, Replace)
-    - _Requirements: 7.2_
+    - _Requirements: 5.4, 7.2_
 
-  - [ ]* 6.7 Write property test for passthrough mode
+  - [ ] 6.7 Implement recursion protection
+    - Set IS_INJECTING flag to true before SendInput calls
+    - Check IS_INJECTING flag at start of hook callback
+    - Return Pass immediately if IS_INJECTING is true
+    - Reset IS_INJECTING flag after SendInput completes
+    - _Requirements: 7.5_
+
+  - [ ] 6.8 Write property test for recursion protection
+    - **Property 9: Recursion Protection**
+    - **Validates: Requirements 7.5**
+    - Test that injected keys are not re-processed by the hook
+
+  - [ ] 6.9 Write property test for passthrough mode
     - **Property 7: Passthrough Mode Transparency**
     - **Validates: Requirements 7.3**
     - Test that all keystrokes pass through unmodified in Passthrough mode
 
-  - [ ]* 6.8 Write property test for processing latency
+  - [ ] 6.10 Write property test for processing latency
     - **Property 8: Keystroke Processing Latency**
     - **Validates: Requirements 5.1**
     - Measure processing time for random keystrokes
@@ -181,36 +187,107 @@
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 8. System Tray Integration
-  - [ ] 8.1 Create System Tray icon
-    - Initialize `tray-icon` with application icon
+  - [ ] 8.1 Create TrayIconManager with dynamic icons
+    - Create `TrayIconManager` struct to manage icon state
+    - Generate 32x32 pixel icons dynamically at runtime
+    - Create green icon variant for Active mode
+    - Create yellow/orange icon variant for Passthrough mode
+    - Initialize `tray-icon` with Active mode icon on startup
     - Set up `tao` event loop in main thread
-    - Display icon in System Tray on startup (works on both Linux and Windows)
-    - _Requirements: 4.1_
+    - _Requirements: 4.1, 4.2, 4.3_
 
-  - [ ] 8.2 Implement context menu
-    - Create menu with "Disable"/"Enable" and "Exit" options
+  - [ ] 8.2 Implement tooltip display
+    - Set tooltip to "GhostKeys - Active" when in Active mode
+    - Set tooltip to "GhostKeys - Paused" when in Passthrough mode
+    - Update tooltip when mode changes
+    - _Requirements: 4.4_
+
+  - [ ] 8.3 Write property test for tooltip state consistency
+    - **Property 10: Tooltip State Consistency**
+    - **Validates: Requirements 4.4**
+    - Test that tooltip text matches current OperationMode
+
+  - [ ] 8.4 Implement context menu structure
+    - Create non-clickable status indicator item showing current state
+    - Create "Pause"/"Resume" toggle menu item
+    - Create "Help / Mappings" menu item
+    - Create "About" menu item
+    - Create "Exit" menu item
     - Handle menu item click events
-    - Update menu text dynamically (Disable ↔ Enable)
-    - _Requirements: 4.2, 4.3, 4.4_
+    - _Requirements: 4.5, 4.6, 4.7, 4.8, 4.9, 4.10, 4.11_
 
-  - [ ] 8.3 Implement Enable/Disable toggle
+  - [ ] 8.5 Implement Pause/Resume toggle
     - Toggle `mode` in SharedState
-    - When disabled, force Passthrough mode
-    - When enabled, restore Active mode
+    - When paused, enter Passthrough mode and update icon to yellow/orange
+    - When resumed, enter Active mode and update icon to green
+    - Update menu text dynamically (Pause ↔ Resume)
+    - Update status indicator text
     - Default to Active mode on startup
-    - _Requirements: 4.3, 4.4, 4.6_
+    - _Requirements: 4.7, 4.8, 4.12_
 
-  - [x]* 8.4 Write property test for enable/disable round-trip
-
+  - [x] 8.6 Write property test for pause/resume round-trip
     - **Property 6: Enable/Disable Toggle Round-Trip**
-    - **Validates: Requirements 4.3, 4.4**
-    - Test that disable then enable restores Active mode
+    - **Validates: Requirements 4.7, 4.8**
+    - Test that pause then resume restores Active mode
 
-  - [ ] 8.5 Implement Exit functionality
+  - [ ] 8.7 Implement Help / Mappings dialog
+    - Create native Windows MessageBox with key mapping cheat sheet
+    - Display US Key → ABNT2 Output mappings
+    - Display dead key combination reference
+    - _Requirements: 4.9_
+
+  - [ ] 8.8 Implement About dialog
+    - Create native dialog with version info (v0.1.0)
+    - Display application description
+    - Display credits and repository link
+    - _Requirements: 4.10_
+
+  - [ ] 8.9 Implement Exit functionality
     - Signal exit to hook thread via exit flag
     - Wait for hook thread to release hook and terminate
     - Exit event loop and terminate application
-    - _Requirements: 4.5, 7.4_
+    - _Requirements: 4.11, 7.4_
 
-- [ ] 9. Final Checkpoint - Complete integration
+- [ ] 9. Checkpoint - Verify System Tray
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 10. DevOps Infrastructure
+  - [ ] 10.1 Configure cross-compilation with cargo-xwin
+    - Update Cargo.toml with platform-specific dependencies
+    - Document cargo-xwin installation and usage
+    - Test cross-compilation from Linux to Windows
+    - _Requirements: 8.1, 8.3_
+
+  - [ ] 10.2 Create DevContainer configuration
+    - Create `.devcontainer/devcontainer.json`
+    - Configure Rust toolchain and cargo-xwin
+    - Test development workflow in DevContainer
+    - _Requirements: 8.4_
+
+  - [ ] 10.3 Create CI pipeline
+    - Create `.github/workflows/ci.yml`
+    - Configure to run on windows-latest runner
+    - Add cargo check, cargo test, cargo build steps
+    - _Requirements: 9.2_
+
+  - [ ] 10.4 Create Release pipeline
+    - Create `.github/workflows/release.yml`
+    - Configure to trigger on v* tags
+    - Add release binary build step
+    - Add git-cliff changelog generation
+    - Add SHA256 checksum calculation
+    - Add GitHub Release publishing
+    - _Requirements: 9.3, 9.4, 9.5, 9.6_
+
+  - [ ] 10.5 Create Kiro agent hooks
+    - Create `.kiro/hooks/quality-control.json`
+    - Configure to run cargo check on file save
+    - _Requirements: 9.1_
+
+  - [ ] 10.6 Create Static Context Manifest
+    - Create `.kiro/context_manifest.json`
+    - Document project structure and key files
+    - _Requirements: 10.3_
+
+- [ ] 11. Final Checkpoint - Complete integration
   - Ensure all tests pass, ask the user if questions arise.
