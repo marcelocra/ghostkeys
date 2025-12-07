@@ -8,6 +8,7 @@
 use std::cell::RefCell;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use windows::Win32::Foundation::{HINSTANCE, LPARAM, LRESULT, WPARAM};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
@@ -28,11 +29,21 @@ use crate::state::SharedState;
 thread_local! {
     static MAPPER: RefCell<Option<Mapper>> = RefCell::new(None);
     static HOOK_HANDLE: RefCell<Option<HHOOK>> = RefCell::new(None);
-    static IS_INJECTING: RefCell<bool> = RefCell::new(false);
+}
+
+// Global pause state
+// This allows the hook to immediately return if the app is paused,
+// minimizing overhead and preventing any interference.
+pub static GLOBAL_PAUSED: AtomicBool = AtomicBool::new(false);
+
+/// Sets the global pause state
+pub fn set_paused(paused: bool) {
+    GLOBAL_PAUSED.store(paused, Ordering::SeqCst);
 }
 
 // Global hook handle for panic handler access (separate from thread-local)
-static GLOBAL_HOOK_HANDLE: std::sync::Mutex<Option<isize>> = std::sync::Mutex::new(None);
+// We use isize to store the handle as HHOOK is not Send/Sync
+static GLOBAL_HOOK_HANDLE: Mutex<Option<isize>> = Mutex::new(None);
 
 /// Release the keyboard hook from the panic handler
 /// This is called from the global panic hook to ensure the keyboard is freed
@@ -41,6 +52,7 @@ pub fn release_hook_on_panic() {
         if let Some(raw_handle) = handle.take() {
             unsafe {
                 let hhook = HHOOK(raw_handle as *mut std::ffi::c_void);
+                // We ignore the result here as we are panicking anyway
                 let _ = UnhookWindowsHookEx(hhook);
             }
         }
@@ -73,10 +85,6 @@ fn is_shift_pressed() -> bool {
 
 /// Inject a Unicode character using SendInput
 fn inject_char(c: char) {
-    IS_INJECTING.with(|injecting| {
-        *injecting.borrow_mut() = true;
-    });
-
     let mut inputs: Vec<INPUT> = Vec::new();
 
     // Key down
@@ -110,10 +118,6 @@ fn inject_char(c: char) {
     unsafe {
         SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
     }
-
-    IS_INJECTING.with(|injecting| {
-        *injecting.borrow_mut() = false;
-    });
 }
 
 /// Inject multiple Unicode characters
@@ -134,10 +138,18 @@ unsafe extern "system" fn low_level_keyboard_proc(
         return CallNextHookEx(None, code, wparam, lparam);
     }
 
-    // Check if we're injecting (avoid recursion)
-    let is_injecting = IS_INJECTING.with(|injecting| *injecting.borrow());
-    if is_injecting {
+    // Check if paused - do this early to minimize overhead
+    if GLOBAL_PAUSED.load(Ordering::SeqCst) {
         return CallNextHookEx(None, code, wparam, lparam);
+    }
+
+    // Get key info from lparam
+    let kb_struct = &*(lparam.0 as *const KBDLLHOOKSTRUCT);
+
+    // Check if the event was injected (LLKHF_INJECTED is bit 4)
+    // This prevents infinite recursion when we inject keys
+    if (kb_struct.flags.0 & 0x10) != 0 {
+         return CallNextHookEx(None, code, wparam, lparam);
     }
 
     // Only process key down events
@@ -146,8 +158,6 @@ unsafe extern "system" fn low_level_keyboard_proc(
         return CallNextHookEx(None, code, wparam, lparam);
     }
 
-    // Get key info from lparam
-    let kb_struct = &*(lparam.0 as *const KBDLLHOOKSTRUCT);
     let vk_code = kb_struct.vkCode;
 
     // Convert to our VirtualKey
@@ -184,7 +194,6 @@ unsafe extern "system" fn low_level_keyboard_proc(
         }
     }
 }
-
 
 /// Windows keyboard interceptor using low-level keyboard hooks
 pub struct WindowsInterceptor {
