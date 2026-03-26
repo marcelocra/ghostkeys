@@ -1,0 +1,118 @@
+# Implementation Plan
+
+- [ ] 1. Initialize Phoenix Project with Gleam Support
+  - [ ] 1.1 Create new Phoenix project with SQLite and LiveView
+    - Run `mix phx.new exobrain --database sqlite3`
+    - Verify Phoenix 1.8.3+ and LiveView are configured
+    - _Requirements: 1.1_
+  - [ ] 1.2 Configure mix_gleam for Gleam compilation
+    - Add `{:mix_gleam, "~> 0.6"}` to mix.exs dependencies
+    - Create `gleam.toml` configuration file
+    - Create `src/` directory for Gleam source files
+    - Configure mix.exs compilers: `[:gleam | Mix.compilers()]`
+    - _Requirements: 1.2, 1.3, 1.4_
+  - [ ] 1.3 Implement DecayCalculator Gleam module
+    - Create `src/decay_calculator.gleam` with `calculate_health/1` function
+    - Accept Unix timestamp (Int) and return health status string
+    - Implement thresholds: Fresh (<86400s), Stale (<604800s), Rotten (>=604800s)
+    - _Requirements: 7.1, 7.2_
+  - [ ] 1.4 Write property test for DecayCalculator
+    - **Property 13: DecayCalculator Health Status Boundaries**
+    - **Validates: Requirements 7.2, 7.3**
+  - [ ] 1.5 Verify Gleam-Elixir interop
+    - Create simple test calling `:decay_calculator.calculate_health/1` from Elixir
+    - Document interop pattern in code comments
+    - _Requirements: 7.3_
+
+- [ ] 2. Checkpoint - Ensure Gleam integration works
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 3. Set Up User Authentication
+  - [ ] 3.1 Generate authentication with phx.gen.auth
+    - Run `mix phx.gen.auth Accounts User users`
+    - Review and apply generated migrations
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+  - [ ] 3.2 Write property tests for authentication
+    - **Property 1: Password Hashing on Registration**
+    - **Property 2: Authentication Success with Valid Credentials**
+    - **Property 3: Authentication Failure with Invalid Credentials**
+    - **Validates: Requirements 2.1, 2.2, 2.3**
+
+- [ ] 4. Implement Projects Context
+  - [ ] 4.1 Create Projects migration and schema
+    - Generate migration with user_id foreign key (on_delete: delete_all)
+    - Create `lib/exobrain/projects/project.ex` schema
+    - Add name (required), description (optional), timestamps
+    - _Requirements: 6.1, 6.2_
+  - [ ] 4.2 Implement Projects context functions
+    - Create `lib/exobrain/projects.ex` with CRUD operations
+    - Implement `list_projects/1` scoped to user
+    - Implement `get_project!/2` with user scope
+    - Implement `create_project/2`, `update_project/2`, `delete_project/1`
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 9.1_
+  - [ ] 4.3 Write property tests for Projects
+    - **Property 5: Project Scoping to User**
+    - **Property 6: Project Cascade Delete**
+    - **Validates: Requirements 3.2, 3.4, 6.6**
+
+- [ ] 5. Implement Cards Context
+  - [ ] 5.1 Create Cards migration and schema
+    - Generate migration with project_id foreign key (on_delete: delete_all)
+    - Create `lib/exobrain/cards/card.ex` schema
+    - Add title, description, status (enum), last_activity_at, timestamps
+    - Default status to "todo", last_activity_at to inserted_at
+    - _Requirements: 6.1, 6.3_
+  - [ ] 5.2 Implement Cards context functions
+    - Create `lib/exobrain/cards.ex` with CRUD operations
+    - Implement `list_cards/1` scoped to project
+    - Implement status update logic that updates last_activity_at
+    - Implement `get_card_health/1` calling Gleam DecayCalculator
+    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 9.2_
+  - [ ] 5.3 Write property tests for Cards
+    - **Property 7: Card Default Status**
+    - **Property 8: Card Status Change Updates Activity Timestamp**
+    - **Property 9: Card Non-Status Update Preserves Activity Timestamp**
+    - **Property 10: Card Scoping to Project**
+    - **Validates: Requirements 4.1, 4.2, 4.3, 4.5, 4.6, 4.7**
+
+- [ ] 6. Implement Notes Context
+  - [ ] 6.1 Create Notes migration and schema
+    - Generate migration with project_id foreign key (on_delete: delete_all)
+    - Create `lib/exobrain/notes/note.ex` schema
+    - Add title, content (text for Markdown), timestamps
+    - _Requirements: 6.1, 6.4_
+  - [ ] 6.2 Implement Notes context functions
+    - Create `lib/exobrain/notes.ex` with CRUD operations
+    - Implement `list_notes/1` scoped to project
+    - Implement `create_note/2`, `update_note/2`, `delete_note/1`
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 9.3_
+  - [ ] 6.3 Write property tests for Notes
+    - **Property 11: Note Scoping to Project**
+    - **Validates: Requirements 5.3**
+
+- [ ] 7. Checkpoint - Verify all contexts and cascade deletes
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 8. Configure Kamal Deployment
+  - [ ] 8.1 Create deploy.yml with Docker volume configuration
+    - Configure Docker image build for Phoenix release
+    - Set up server configuration for Linux VPS
+    - Configure volume mapping: `/var/exobrain-data:/app/priv/data`
+    - Add environment variable placeholders for secrets
+    - Configure health check endpoint
+    - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
+  - [ ] 8.2 Update runtime.exs for SQLite path configuration
+    - Configure DATABASE_PATH environment variable support
+    - Default to `priv/data/exobrain.db` for containerized deployment
+    - _Requirements: 8.5_
+
+- [ ] 9. Create Setup Documentation
+  - [ ] 9.1 Write README with setup instructions
+    - Document prerequisites (Elixir, Gleam, SQLite)
+    - Provide step-by-step setup commands
+    - Document Gleam interop usage pattern
+    - Include deployment instructions for Kamal
+    - _Requirements: 7.5_
+
+- [ ] 10. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
